@@ -10,6 +10,7 @@
 #define MSG_ERR_FITXER      "Error amb el fitxer\n"
 #define EXT4_PADDING_SUPER_BLOCK        1024
 #define EXT4_MAGIC_NUMBER_OFFSET        0x38
+#define EXT_MAGIC_SEQUENCE              0xef53
 
 int switchOperation(char * string) {
 
@@ -23,7 +24,8 @@ int switchOperation(char * string) {
 
 void showInformation(char * string) {
     FILE* file;
-    char out[16];
+
+    unsigned short magicSignature;
 
     file = fopen(string, "rb");
 
@@ -31,17 +33,18 @@ void showInformation(char * string) {
         printf(MSG_ERR_FITXER);
     } else {
 
-
         fseek(file, EXT4_MAGIC_NUMBER_OFFSET + EXT4_PADDING_SUPER_BLOCK, SEEK_SET);
-        fread(out, 16, 1, file);
-        printf(out);
+        fread(&magicSignature, 2, 1, file);
+        printf("%x", magicSignature);
+        if (magicSignature == EXT_MAGIC_SEQUENCE) {
+            printf("%x", magicSignature);
+        }
         fclose(file);
     }
 
 }
 
 int main(int argc, char * argv[]) {
-
     if (argc != N_ARGS) {
         printf(MSG_ERR_ARGS);
         return EXIT_FAILURE;
