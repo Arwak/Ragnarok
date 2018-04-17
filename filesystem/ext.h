@@ -6,6 +6,7 @@
 #define RAGNAROK_EXT4_H
 
 #include <stdio.h>
+#include <time.h>
 
 #define EXT4                            4
 #define EXT3                            3
@@ -26,7 +27,7 @@
 #define TOTAL_BLOCKS                 0x4
 #define FIRST_BLOCK                  0x14
 #define BLOCK_GROUP                  0x20
-#define FRAGS_GROUP                  0x58
+#define FRAGS_GROUP                  0x24
 
 #define VOLUME_NAME                  0x78
 #define LAST_CHECK                   0x40
@@ -34,31 +35,33 @@
 #define LAST_WRITTEN                 0x30
 
 
+
+
 typedef struct inodeInfo {
     unsigned int  inodeSize;        //Size of inode structure, in bytes.
-    unsigned long numberOfInodes;   //Total inode count.
-    unsigned long firstInodeM;      //First non-reserved inode.
-    unsigned long inodesGroup;      //Inodes per group.
-    unsigned long freeInodes;       //Free inode count.
+    __uint32_t numberOfInodes;   //Total inode count.
+    __uint32_t firstInodeM;      //First non-reserved inode.
+    __uint32_t inodesGroup;      //Inodes per group.
+    __uint32_t freeInodes;       //Free inode count.
 } inodeInfoStruct;
 
 typedef struct blockInfo {
-    unsigned long blockSize;            //Block size is 2 ^ (10 + s_log_block_size).
-    unsigned long reservedBlocks;       //This number of blocks can only be allocated by the super-user.
-    unsigned long freeBlocks;           //Free block count.
-    unsigned long totalBlocks;          //Total block count.
-    unsigned long firstBlock;           //First data block. This must be at least 1 for 1k-block filesystems
+    __uint32_t blockSize;            //Block size is 2 ^ (10 + s_log_block_size).
+    __uint32_t reservedBlocks;       //This number of blocks can only be allocated by the super-user.
+    __uint32_t freeBlocks;           //Free block count.
+    __uint32_t totalBlocks;          //Total block count.
+    __uint32_t firstBlock;           //First data block. This must be at least 1 for 1k-block filesystems
                                         // and is typically 0 for all other block sizes.
 
-    unsigned long blockGroup;           //Blocks per group.
-    unsigned long fragsGroup;           //??? no sabem que és
+    __uint32_t blockGroup;           //Blocks per group.
+    __uint32_t fragsGroup;           //??? no sabem que és
 } blockInfoStruct;
 
 typedef struct volumeInfo {
     char volumeName[16];                //Volume label.
-    unsigned long lastCheck;            //Time of last check, in seconds since the epoch.
-    unsigned long lastMount;            //Mount time, in seconds since the epoch.
-    unsigned long lastWritten;          //Write time, in seconds since the epoch.
+    __uint32_t lastCheck;                   //Time of last check, in seconds since the epoch.
+    __uint32_t lastMount;                   //Mount time, in seconds since the epoch.
+    __uint32_t lastWritten;                 //Write time, in seconds since the epoch.
 } volumeInfoStruct;
 
 typedef struct info {
@@ -66,9 +69,10 @@ typedef struct info {
     blockInfoStruct block;
     volumeInfoStruct volume;
 
-} extInformation;
+} ext4;
 
 
-void readExt(FILE* file);
+void readExt4(FILE *file);
+
 
 #endif //RAGNAROK_EXT4_H

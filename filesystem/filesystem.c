@@ -16,8 +16,22 @@
 #define MASK_JOURNAL                    0x4
 #define MASK_EXTENTS                    0x40
 
+#define LOW_TWO_OFFSET                  0x1A
+#define UPPER_TWO_OFFSET                0x14
 
-void chooseExt (FILE* file) {
+#define LOW_FAT32                       64
+#define HIGH_FAT32                      63488
+
+#define LOW_FAT16                       0
+#define HIGH_FAT16                      63523
+
+#define LOW_FAT12                       2
+#define HIGH_FAT12                      61442
+
+#define INFO                            0
+#define SEARCH                          1
+
+void chooseExt (FILE* file, int operation) {
     unsigned long extents;
     long aux;
 
@@ -26,7 +40,17 @@ void chooseExt (FILE* file) {
     aux = MASK_EXTENTS & extents;
 
     if (aux > 0) {
-        readExt(file);
+        switch (operation) {
+            case INFO:
+                readExt4(file);
+
+                break;
+            case SEARCH:
+                break;
+        }
+
+
+
     } else {
 
         fseek(file, EXT_HAS_JOURNAL + EXT_PADDING_SUPER_BLOCK, SEEK_SET);
@@ -41,22 +65,62 @@ void chooseExt (FILE* file) {
     }
 }
 
-void chooseFilesystem (char * pathFile) {
+void chooseFilesystem (char * pathFile, int operation) {
     FILE* file;
 
     unsigned short magicSignature;
+    unsigned short upperOffset;
+
 
     file = fopen(pathFile, "rb");
 
     if (file == NULL) {
         printf(MSG_ERR_FITXER);
     } else {
+
         //Possible ext?
         fseek(file, EXT_MAGIC_NUMBER_OFFSET + EXT_PADDING_SUPER_BLOCK, SEEK_SET);
         fread(&magicSignature, sizeof(magicSignature), 1, file);
 
         if (magicSignature == EXT_MAGIC_SEQUENCE) {             //it will be a ext
-            chooseExt(file);
+            chooseExt(file, operation);
+        } else {
+
+            //Possible fat
+            fseek(file, LOW_TWO_OFFSET, SEEK_SET);
+            fread(&magicSignature, sizeof(magicSignature), 1, file);
+
+            fseek(file, UPPER_TWO_OFFSET, SEEK_SET);
+            fread(&upperOffset, sizeof(upperOffset), 1, file);
+
+            switch (magicSignature) {
+                case LOW_FAT16:
+                    printf("File System not recognized (FAT16)\n");
+                    break;
+
+                case LOW_FAT12:
+                    printf("File System not recognized (FAT12)\n");
+
+                    break;
+                case LOW_FAT32:
+                    if (upperOffset == HIGH_FAT32) {
+                        switch (operation) {
+                            case INFO:
+                                readFat32(file);
+
+                                break;
+                            case SEARCH:
+                                break;
+                        }
+
+                    }
+
+                    break;
+                default:
+                    printf("Error. Filesystem not found.\n");
+                    break;
+            }
+
         }
 
         fclose(file);

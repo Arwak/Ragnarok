@@ -3,5 +3,5 @@ project(Ragnarok)
 
 set(CMAKE_C_STANDARD 90)
 
-set(SOURCE_FILES main.c filesystem/ext.c filesystem/filesystem.c)
+set(SOURCE_FILES main.c filesystem/ext.c filesystem/filesystem.c filesystem/fat.c)
 add_executable(Ragnarok ${SOURCE_FILES})

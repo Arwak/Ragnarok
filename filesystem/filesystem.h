@@ -7,13 +7,14 @@
 
 
 #include "ext.h"
+#include "fat.h"
 
 #define MSG_ERR_FITXER                  "Invalid File\n"
 
 
 
 
-void chooseFilesystem(char * pathFile);
+void chooseFilesystem(char * pathFile, int operation);
 
 
 #endif //RAGNAROK_FILESYSTEM_H

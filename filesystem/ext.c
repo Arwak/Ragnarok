@@ -2,40 +2,56 @@
 // Created by Clàudia Peiró Vidal on 13/4/18.
 //
 
+
+#include <math.h>
 #include "ext.h"
 
-void showExt(extInformation ext) {
+void showExt(ext4 ext) {
     printf("---- Filesystem Information ----\n\n");
 
     printf("Filesystem: EXT4\n\n");
 
     printf("INODE INFO\n");
     printf("Inode Size: %u\n", ext.inode.inodeSize);
-    printf("Number of Inodes: %lu\n", ext.inode.numberOfInodes);
-    printf("First Inode: %lu\n", ext.inode.firstInodeM);
-    printf("Inodes Group: %lu\n", ext.inode.inodesGroup);
-    printf("Free Inodes: %lu\n\n", ext.inode.freeInodes);
+    printf("Number of Inodes: %d\n", ext.inode.numberOfInodes);
+    printf("First Inode: %d\n", ext.inode.firstInodeM);
+    printf("Inodes Group: %d\n", ext.inode.inodesGroup);
+    printf("Free Inodes: %d\n\n", ext.inode.freeInodes);
 
     printf("BLOCK INFO\n");
-    printf("Block Size: %lu\n", ext.block.blockSize);
-    printf("Reserved Blocks: %lu\n", ext.block.reservedBlocks);
-    printf("Free Blocks: %lu\n", ext.block.freeBlocks);
-    printf("Total Blocks: %lu\n", ext.block.totalBlocks);
-    printf("First BLock: %lu\n", ext.block.firstBlock);
-    printf("Block group: %lu\n", ext.block.blockGroup);
-    printf("Frags group: %lu\n", ext.block.fragsGroup);
+    printf("Block Size: %d\n", (int)pow(2, (10 + ext.block.blockSize)));
+    printf("Reserved Blocks: %d\n", ext.block.reservedBlocks);
+    printf("Free Blocks: %d\n", ext.block.freeBlocks);
+    printf("Total Blocks: %d\n", ext.block.totalBlocks);
+    printf("First BLock: %d\n", ext.block.firstBlock);
+    printf("Block group: %d\n", ext.block.blockGroup);
+    printf("Frags group: %d\n\n", ext.block.fragsGroup);
+
+
+    printf("VOLUME INFO\n");
+    printf("Volume name: %s\n", ext.volume.volumeName);
+
+    time_t ts = ext.volume.lastCheck;
+    printf("Last check: %s", ctime(&ts));
+
+    ts = ext.volume.lastMount;
+    printf("Last mount: %s", ctime(&ts));
+
+    ts = ext.volume.lastWritten;
+    printf("Last written: %s\n", ctime(&ts));
 
 }
 
 
-void readExt(FILE* file) {
-    extInformation ext;
+
+void readExt4(FILE *file) {
+    ext4 ext;
 
     // READ INODE
     fseek(file, INODE_SIZE + EXT_PADDING_SUPER_BLOCK, SEEK_SET);
     fread(&ext.inode.inodeSize, sizeof(ext.inode.inodeSize), 1, file);
 
-    fseek(file, NUMBER_INODES + EXT_PADDING_SUPER_BLOCK, SEEK_SET);
+    fseek(file, EXT_PADDING_SUPER_BLOCK, SEEK_SET);
     fread(&ext.inode.numberOfInodes, sizeof(ext.inode.numberOfInodes), 1, file);
 
     fseek(file, FIRST_INODE + EXT_PADDING_SUPER_BLOCK, SEEK_SET);
@@ -70,5 +86,21 @@ void readExt(FILE* file) {
     fseek(file, FRAGS_GROUP + EXT_PADDING_SUPER_BLOCK, SEEK_SET);
     fread(&ext.block.fragsGroup, sizeof(ext.block.fragsGroup), 1, file);
 
+
+    //READ VOLUME
+    fseek(file, VOLUME_NAME + EXT_PADDING_SUPER_BLOCK, SEEK_SET);
+    fread(ext.volume.volumeName, sizeof(ext.volume.volumeName), 1, file);
+
+    fseek(file, LAST_CHECK + EXT_PADDING_SUPER_BLOCK, SEEK_SET);
+    fread(&ext.volume.lastCheck, sizeof(ext.volume.lastCheck), 1, file);
+
+    fseek(file, LAST_MOUNT + EXT_PADDING_SUPER_BLOCK, SEEK_SET);
+    fread(&ext.volume.lastMount, sizeof(ext.volume.lastMount), 1, file);
+
+    fseek(file, LAST_WRITTEN + EXT_PADDING_SUPER_BLOCK, SEEK_SET);
+    fread(&ext.volume.lastWritten, sizeof(ext.volume.lastWritten), 1, file);
+
+
     showExt(ext);
 }
+
