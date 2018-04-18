@@ -6,6 +6,9 @@
 #include <math.h>
 #include "ext.h"
 
+#define DEPTH 0x06
+
+
 void showExt(ext4 ext) {
     printf("---- Filesystem Information ----\n\n");
 
@@ -110,11 +113,13 @@ void searchExt4(FILE * file) {
     __uint32_t posLowInodeTable;
     __uint32_t posHighInodeTable;
     __uint64_t posInodeTable;
+    __uint16_t depth;
 
     ext4 ext4Info = readExt4(file);
 
     //posicio group descriptor
-    posGroupDescrip = (int)pow(2, (10 + ext4Info.block.blockSize)) + EXT_PADDING_SUPER_BLOCK;
+
+    posGroupDescrip = (int)pow(2, (10 + ext4Info.block.blockSize))  == EXT_PADDING_SUPER_BLOCK ? 2*EXT_PADDING_SUPER_BLOCK:(int)pow(2, (10 + ext4Info.block.blockSize));
 
     //Lower 32 bits de inode table
     fseek(file, 0x8 + posGroupDescrip, SEEK_SET);
@@ -127,7 +132,22 @@ void searchExt4(FILE * file) {
     posInodeTable = posHighInodeTable << 32 | posLowInodeTable;
 
     printf( "Pos Inode table %lli", posInodeTable );
+    //printf( "Pos Inode table %d", (int)pow(2, (10 + ext4Info.block.blockSize)) );
 
+    /*posInodeTable *= (int)pow(2, (10 + ext4Info.block.blockSize));
+
+
+
+
+
+    //ens posem a la posició del depth per mirar si es fulla
+    fseek(file, posInodeTable + ext4Info.inode.inodeSize + DEPTH, SEEK_SET);
+    fread(&depth, sizeof(depth), 1, file);
+
+    /*while (depth != 0) {
+        fseek(file, 0x04 + posInodeTable + ext4Info.inode.inodeSize + 0x06, SEEK_SET);
+        fread(&depth, sizeof(depth), 1, file);
+    }*/
 
 }
 
