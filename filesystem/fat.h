@@ -30,4 +30,6 @@ typedef struct fat32Information {
 
 void readFat32(FILE *file);
 
+void searchFat32(FILE * file);
+
 #endif //RAGNAROK_FAT_H

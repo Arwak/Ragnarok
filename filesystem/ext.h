@@ -72,7 +72,9 @@ typedef struct info {
 } ext4;
 
 
-void readExt4(FILE *file);
+ext4 readExt4(FILE *file);
+void showExt(ext4 ext);
+void searchExt4(FILE * file);
 
 
 #endif //RAGNAROK_EXT4_H

@@ -23,13 +23,11 @@
 #define HIGH_FAT32                      63488
 
 #define LOW_FAT16                       0
-#define HIGH_FAT16                      63523
-
 #define LOW_FAT12                       2
-#define HIGH_FAT12                      61442
 
 #define INFO                            0
 #define SEARCH                          1
+
 
 void chooseExt (FILE* file, int operation) {
     unsigned long extents;
@@ -42,14 +40,13 @@ void chooseExt (FILE* file, int operation) {
     if (aux > 0) {
         switch (operation) {
             case INFO:
-                readExt4(file);
-
+                showExt(readExt4(file));
                 break;
+
             case SEARCH:
+                searchExt4(file);
                 break;
         }
-
-
 
     } else {
 
@@ -107,9 +104,10 @@ void chooseFilesystem (char * pathFile, int operation) {
                         switch (operation) {
                             case INFO:
                                 readFat32(file);
-
                                 break;
+
                             case SEARCH:
+                                searchFat32(file);
                                 break;
                         }
 

@@ -49,3 +49,7 @@ void readFat32(FILE *file) {
 
     showFat(fat);
 }
+
+void searchFat32(FILE * file) {
+
+}

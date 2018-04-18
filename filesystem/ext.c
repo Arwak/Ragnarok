@@ -42,9 +42,7 @@ void showExt(ext4 ext) {
 
 }
 
-
-
-void readExt4(FILE *file) {
+ext4 readExt4(FILE *file) {
     ext4 ext;
 
     // READ INODE
@@ -100,7 +98,36 @@ void readExt4(FILE *file) {
     fseek(file, LAST_WRITTEN + EXT_PADDING_SUPER_BLOCK, SEEK_SET);
     fread(&ext.volume.lastWritten, sizeof(ext.volume.lastWritten), 1, file);
 
+    return ext;
+}
 
-    showExt(ext);
+/**
+ * Primer haurem de buscar els group descriptors
+ * @param file
+ */
+void searchExt4(FILE * file) {
+    __uint32_t posGroupDescrip;
+    __uint32_t posLowInodeTable;
+    __uint32_t posHighInodeTable;
+    __uint64_t posInodeTable;
+
+    ext4 ext4Info = readExt4(file);
+
+    //posicio group descriptor
+    posGroupDescrip = (int)pow(2, (10 + ext4Info.block.blockSize)) + EXT_PADDING_SUPER_BLOCK;
+
+    //Lower 32 bits de inode table
+    fseek(file, 0x8 + posGroupDescrip, SEEK_SET);
+    fread(&posLowInodeTable, sizeof(posLowInodeTable), 1, file);
+
+    //high 32 bits de inode table
+    fseek(file, 0x24 + posGroupDescrip, SEEK_SET);
+    fread(&posHighInodeTable, sizeof(posHighInodeTable), 1, file);
+
+    posInodeTable = posHighInodeTable << 32 | posLowInodeTable;
+
+    printf( "Pos Inode table %lli", posInodeTable );
+
+
 }
 

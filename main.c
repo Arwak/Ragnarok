@@ -23,6 +23,9 @@ int switchOperation(char * string) {
     if ( strcmp(INFO, string) == 0) {
         return INFO_CODE;
     } else {
+        if (strcmp(SEARCH, string) == 0) {
+            return SEARCH_CODE;
+        }
         return ERROR_CODE;
     }
 
@@ -44,7 +47,7 @@ int main(int argc, char * argv[]) {
                 printf(MSG_ERR_ARGS);
                 return EXIT_FAILURE;
             }
-
+            chooseFilesystem(argv[2], SEARCH_CODE);
             break;
         default:
             printf(MSG_ERR_OPERATION);
