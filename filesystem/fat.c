@@ -50,6 +50,6 @@ void readFat32(FILE *file) {
     showFat(fat);
 }
 
-void searchFat32(FILE * file) {
+void searchFat32(FILE * file, char * fileToFind) {
 
 }

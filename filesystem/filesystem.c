@@ -27,9 +27,10 @@
 
 #define INFO                            0
 #define SEARCH                          1
+#define DEEP                            2
 
 
-void chooseExt (FILE* file, int operation) {
+void chooseExt (FILE* file, char * pathToFile, int operation) {
     unsigned long extents;
     long aux;
 
@@ -44,7 +45,10 @@ void chooseExt (FILE* file, int operation) {
                 break;
 
             case SEARCH:
-                searchExt4(file);
+                searchExt4(file, pathToFile, SEARCH);
+                break;
+            case DEEP:
+                searchExt4(file, pathToFile, DEEP);
                 break;
         }
 
@@ -62,7 +66,7 @@ void chooseExt (FILE* file, int operation) {
     }
 }
 
-void chooseFilesystem (char * pathFile, int operation) {
+void chooseFilesystem (char * pathFile, char * pathFileToFind, int operation) {
     FILE* file;
 
     unsigned short magicSignature;
@@ -80,7 +84,7 @@ void chooseFilesystem (char * pathFile, int operation) {
         fread(&magicSignature, sizeof(magicSignature), 1, file);
 
         if (magicSignature == EXT_MAGIC_SEQUENCE) {             //it will be a ext
-            chooseExt(file, operation);
+            chooseExt(file, pathFileToFind, operation);
         } else {
 
             //Possible fat
@@ -107,7 +111,7 @@ void chooseFilesystem (char * pathFile, int operation) {
                                 break;
 
                             case SEARCH:
-                                searchFat32(file);
+                                searchFat32(file, pathFileToFind);
                                 break;
                         }
 

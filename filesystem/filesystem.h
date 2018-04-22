@@ -14,7 +14,7 @@
 
 
 
-void chooseFilesystem(char * pathFile, int operation);
+void chooseFilesystem (char * pathFile, char * pathFileToFind, int operation);
 
 
 #endif //RAGNAROK_FILESYSTEM_H

@@ -38,7 +38,7 @@
 
 
 typedef struct inodeInfo {
-    unsigned int  inodeSize;        //Size of inode structure, in bytes.
+    __uint16_t  inodeSize;        //Size of inode structure, in bytes.
     __uint32_t numberOfInodes;   //Total inode count.
     __uint32_t firstInodeM;      //First non-reserved inode.
     __uint32_t inodesGroup;      //Inodes per group.
@@ -74,7 +74,7 @@ typedef struct info {
 
 ext4 readExt4(FILE *file);
 void showExt(ext4 ext);
-void searchExt4(FILE * file);
+void searchExt4(FILE * file, char * filetofind, int operation);
 
 
 #endif //RAGNAROK_EXT4_H
