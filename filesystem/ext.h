@@ -68,8 +68,16 @@ typedef struct info {
     inodeInfoStruct inode;
     blockInfoStruct block;
     volumeInfoStruct volume;
+    int blockSize;
+    __uint64_t posInodeTable;
 
 } ext4;
+
+typedef struct leaf {
+    __uint64_t fatherPosBlock;
+    __uint64_t actualPosBlock;
+
+} leaf;
 
 
 ext4 readExt4(FILE *file);
