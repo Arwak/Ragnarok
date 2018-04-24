@@ -28,6 +28,7 @@
 #define INFO                            0
 #define SEARCH                          1
 #define DEEP                            2
+#define SHOW                            3
 
 
 void chooseExt (FILE* file, char * pathToFile, int operation) {
@@ -49,6 +50,9 @@ void chooseExt (FILE* file, char * pathToFile, int operation) {
                 break;
             case DEEP:
                 searchExt4(file, pathToFile, DEEP);
+                break;
+            case SHOW:
+                searchExt4(file, pathToFile, SHOW);
                 break;
         }
 

@@ -19,6 +19,9 @@
 #define FILE_NAME 0x8
 #define LENGTH_FILE 0x6
 
+#define SEARCH_OPERATION 1
+#define SHOW 3
+
 #define FILE_NOT_FOUND "Error. File not found.\n"
 
 FILE * file;
@@ -118,93 +121,75 @@ ext4 readExt4(FILE *file) {
     return ext;
 }
 
-unsigned long findBlock( __uint64_t in, int blockSize) {
+void getPosInodeTable (ext4 *ext4Info, int posGroupDescrip) {
+    __uint32_t posLowInodeTable;
+    __uint32_t posHighInodeTable;
+
+    //Lower 32 bits de inode table
+    fseek(file, 0x8 + posGroupDescrip, SEEK_SET);
+    fread(&posLowInodeTable, sizeof(posLowInodeTable), 1, file);
+
+    //high 32 bits de inode table
+    fseek(file, 0x24 + posGroupDescrip, SEEK_SET);
+    fread(&posHighInodeTable, sizeof(posHighInodeTable), 1, file);
+
+    ext4Info->posInodeTable = posHighInodeTable << 32 | posLowInodeTable;
+}
+
+unsigned long findBlock( __uint64_t in, int blockSize, int operation) {
     __uint16_t depth;
-    __uint64_t indexInode;
     __uint16_t upperBlock;
     __uint32_t lowBlock;
     unsigned long posBlock;
 
     //ens posem a la posició del depth per mirar si es fulla
     //indexInode = posInodeTable * blockSize * manyInode + inodeSize + EXTENT_TREE;
-    indexInode = in + EXTENT_TREE;
+    //if (operation == SEARCH_OPERATION) {
+        //in += EXTENT_TREE;
+    //}
 
-    fseek(file, indexInode + DEPTH, SEEK_SET); //Depth
+    fseek(file, in + DEPTH, SEEK_SET); //Depth
     fread(&depth, sizeof(depth), 1, file);
 
     if (depth == 0) {
         //Upper block
-        fseek(file, indexInode + HEADER_SIZE + UPPER_BLOCK, SEEK_SET);
+        fseek(file, in + HEADER_SIZE + UPPER_BLOCK, SEEK_SET);
         fread(&upperBlock, sizeof(upperBlock), 1, file);
 
         //Lower block
-        fseek(file, indexInode + HEADER_SIZE + LOW_BLOCK, SEEK_SET);
+        fseek(file, in + HEADER_SIZE + LOW_BLOCK, SEEK_SET);
+        fread(&lowBlock, sizeof(lowBlock), 1, file);
+
+        //Block
+        posBlock = upperBlock << 32 | lowBlock;
+
+        printf("IN : %lli\n", in);
+        printf("Pos Block : %li\n", posBlock);
+
+        posBlock *= blockSize;
+        return posBlock;
+    }
+    if (operation == SEARCH_OPERATION) {
+        return 0;
+    } else {
+        printf("Aqui\n");
+        //Upper block
+        fseek(file, in + HEADER_SIZE + 0x8, SEEK_SET); //upper
+        fread(&upperBlock, sizeof(upperBlock), 1, file);
+
+        //Lower block
+        fseek(file, in + HEADER_SIZE + 0x4, SEEK_SET); //LOW
         fread(&lowBlock, sizeof(lowBlock), 1, file);
 
         //Block
         posBlock = upperBlock << 32 | lowBlock;
         posBlock *= blockSize;
-        return posBlock;
-
-
-
+        return findBlock(posBlock, blockSize, operation);
     }
-    return 0;
-}
-
-unsigned long exploreDirectory(__uint64_t posBlock, char *fileToFind, int *found) {
-    __uint16_t  var16;
-    __uint32_t  var32;
-    char * fileName;
-    unsigned char length;
-
-    fseek(file, posBlock + LENGTH_FILE, SEEK_SET);
-    fread(&length, sizeof(length), 1, file);
-
-    fileName = (char *) malloc(sizeof(char) * ((int)length + 1));
-
-    fseek(file, posBlock + FILE_NAME, SEEK_SET);
-    fread(fileName, sizeof(char) * ((int)length + 1), 1, file);
-
-    fileName[(int)length] = '\0';
-    printf("File name %s is not %s\n", fileName, fileToFind);
-
-    if (strcmp(fileName, fileToFind) == 0) {
-        *found = 1;
-        return posBlock;
-    }
-
-    fseek(file, posBlock + LENGTH_DIRECTORY, SEEK_SET);
-    fread(&var16, sizeof(var16), 1, file);
-
-    posBlock += var16;
-
-    fseek(file, posBlock, SEEK_SET);
-    fread(&var32, sizeof(var32), 1, file);
-    return posBlock;
-}
-
-int findFileinDirectory(__uint64_t posBlock, char *fileToFind) {
-
-    int found = 0;
-    __uint32_t var32;
-
-    posBlock = exploreDirectory(posBlock, fileToFind, &found);
-
-    fseek(file, posBlock, SEEK_SET);
-    fread(&var32, sizeof(var32), 1, file);
-
-    if (var32 != 0 && found == 0) {
-        found = findFileinDirectory(posBlock,  fileToFind);
-    } else {
-        printf("Inode result %u\n", var32);
-        return found;
-    }
-    return found;
 
 }
 
-void deepSearch(char * fileToFind,  ext4 ext4Info, leaf * toExploreLeaf, int *found);
+void deepSearch(char * fileToFind,  ext4 ext4Info, leaf toExploreLeaf, int *found, int operation);
 
 char * printName (unsigned long posBlock) {
     char * fileName;
@@ -223,22 +208,19 @@ char * printName (unsigned long posBlock) {
     return fileName;
 }
 
-
-
-void exploreInode(char *fileToFind, leaf *toExploreLeaf, ext4 ext4Info, int *found) {
+void exploreInode(char *fileToFind, leaf toExploreLeaf, ext4 ext4Info, int *found, int operation) {
     __uint16_t  var16;
-    __uint32_t nextInode;
-    uint8_t fileInformation;
+
     char * fileName;
     unsigned char length;
 
 
-    fseek(file, toExploreLeaf->actualPosBlock + LENGTH_FILE, SEEK_SET);
+    fseek(file, toExploreLeaf.actualPosBlock + LENGTH_FILE, SEEK_SET);
     fread(&length, sizeof(length), 1, file);
 
     fileName = (char *) malloc(sizeof(char) * ((int)length + 1));
 
-    fseek(file, toExploreLeaf->actualPosBlock  + FILE_NAME, SEEK_SET);
+    fseek(file, toExploreLeaf.actualPosBlock  + FILE_NAME, SEEK_SET);
     fread(fileName, sizeof(char) * ((int)length + 1), 1, file);
 
     fileName[(int)length] = '\0';
@@ -248,45 +230,49 @@ void exploreInode(char *fileToFind, leaf *toExploreLeaf, ext4 ext4Info, int *fou
     if (strcmp(fileName, fileToFind) != 0) {
 
         //mirem següent fulla de mateix ranc
-        fseek(file, toExploreLeaf->actualPosBlock  + LENGTH_DIRECTORY, SEEK_SET);
+        fseek(file, toExploreLeaf.actualPosBlock  + LENGTH_DIRECTORY, SEEK_SET);
         fread(&var16, sizeof(var16), 1, file);
 
-        toExploreLeaf->actualPosBlock  += var16;
+        toExploreLeaf.actualPosBlock  += var16;
 
-        deepSearch(fileToFind, ext4Info, toExploreLeaf,  found);
+        deepSearch(fileToFind, ext4Info, toExploreLeaf,  found, operation);
 
     } else {
 
+
         *found = 1;
+        __uint32_t var32, lowVar32, upperVar32;
 
-        /*int blockSize = (int)pow(2, (10 + ext4Info.block.blockSize));
-        __uint16_t inodeSize = ext4Info.inode.inodeSize;
-
-        __uint64_t in = ext4Info.posInodeTable * blockSize  + inodeSize * howMany;
-        __uint32_t var32;
-
-        fseek(file, in + 0x28 + 0x4, SEEK_SET);
+        fseek(file, toExploreLeaf.fatherPosBlock, SEEK_SET);
         fread(&var32, sizeof(var32), 1, file);
 
-        printf("1In %llx\n", in);
+
+        __uint64_t in = ext4Info.posInodeTable * ext4Info.blockSize + ext4Info.inode.inodeSize * (var32);
 
         fseek(file, in + 0x90, SEEK_SET);
-        fread(&var16, sizeof(var16), 1, file);
-
-        time_t ts = var16;*/
-
-        //printf("File Found! Created on: %s\n", ctime(&ts));
-
-        printf("File Found! \n");
-        /*fseek(file, in + 0x6c, SEEK_SET);
         fread(&var32, sizeof(var32), 1, file);
-        printf("Size: %x\n", var32);*/
+
+        fseek(file, in + 0x4, SEEK_SET);
+        fread(&lowVar32, sizeof(lowVar32), 1, file);
+
+        fseek(file, in + 0x6C, SEEK_SET);
+        fread(&upperVar32, sizeof(upperVar32), 1, file);
+
+        __uint64_t size = upperVar32 << 32 | lowVar32;
+
+        time_t ts = var32;
+
+        char buff[100];
+
+        strftime(buff, 100, "%d-%m-%Y", localtime(&ts));
+        printf("File Found! Size: %lli Created on: %s\n", size, buff);
+
 
     }
 }
 
 
-void deepSearch(char * fileToFind,  ext4 ext4Info, leaf * toExploreLeaf, int *found) {
+void deepSearch(char * fileToFind,  ext4 ext4Info, leaf toExploreLeaf, int *found, int operation) {
 
     __uint32_t nextInode;
     __uint16_t var16;
@@ -297,54 +283,54 @@ void deepSearch(char * fileToFind,  ext4 ext4Info, leaf * toExploreLeaf, int *fo
     char * fileName;
 
     //Busco node a explorar
-    fseek(file, toExploreLeaf->actualPosBlock, SEEK_SET);
+    fseek(file, toExploreLeaf.actualPosBlock, SEEK_SET);
     fread(&nextInode, sizeof(nextInode), 1, file);
 
     if (nextInode != 0) {
-        fseek(file, toExploreLeaf->actualPosBlock + 0x7, SEEK_SET);
+        fseek(file, toExploreLeaf.actualPosBlock + 0x7, SEEK_SET);
         fread(&fileInformation, sizeof(fileInformation), 1, file);
 
         if (fileInformation == 2 ) {
             //Busco posicio del block de l'inode que s'explorara
+            toExploreLeaf.fatherPosBlock = toExploreLeaf.actualPosBlock;
             __uint64_t in = ext4Info.posInodeTable * ext4Info.blockSize  + inodeSize * (nextInode - 1);
-            toExploreLeaf->actualPosBlock = findBlock(in, ext4Info.blockSize);
+            toExploreLeaf.actualPosBlock = findBlock(in + EXTENT_TREE, ext4Info.blockSize, operation);
 
             //Nom del pare directori que s'explorara
-            fileName = printName(toExploreLeaf->actualPosBlock);
-            printf("Directory que explorare  %s\n", fileName);
+            fileName = printName(toExploreLeaf.actualPosBlock);
 
             if (strcmp(fileName, ".") == 0) {
-                printf("1-Explorare al fileName  %s\n", fileName);
-                fseek(file, toExploreLeaf->actualPosBlock + LENGTH_DIRECTORY, SEEK_SET);
+                fseek(file, toExploreLeaf.actualPosBlock + LENGTH_DIRECTORY, SEEK_SET);
                 fread(&var16, sizeof(var16), 1, file);
 
-                toExploreLeaf->actualPosBlock += var16;
+                toExploreLeaf.actualPosBlock += var16;
 
-                fileName = printName (toExploreLeaf->actualPosBlock);
-                printf("2-Explorare al fileName  %s\n", fileName);
-
-                fseek(file, toExploreLeaf->actualPosBlock + LENGTH_DIRECTORY, SEEK_SET);
+                fseek(file, toExploreLeaf.actualPosBlock + LENGTH_DIRECTORY, SEEK_SET);
                 fread(&var16, sizeof(var16), 1, file);
-                toExploreLeaf->actualPosBlock += var16;
+                toExploreLeaf.actualPosBlock += var16;
             }
 
-            fileName = printName (toExploreLeaf->actualPosBlock);
-            printf("FileName  %s\n", fileName);
-            deepSearch(fileToFind, ext4Info, toExploreLeaf, found);
+            deepSearch(fileToFind, ext4Info, toExploreLeaf, found, operation);
+
         } else {
-            exploreInode(fileToFind, toExploreLeaf, ext4Info, found);
+            exploreInode(fileToFind, toExploreLeaf, ext4Info, found, operation);
         }
+
+
+        //Fills ja no tenen més fulles, s'explora germans del pare.
+        fseek(file, toExploreLeaf.fatherPosBlock + LENGTH_DIRECTORY, SEEK_SET);
+        fread(&var16, sizeof(var16), 1, file);
+        toExploreLeaf.fatherPosBlock += var16;
+
+        toExploreLeaf.actualPosBlock = toExploreLeaf.fatherPosBlock;
+
+        if (!*found) {
+            deepSearch(fileToFind, ext4Info, toExploreLeaf, found, operation);
+        }
+
     }
 
-    printf("Miro Germa\n");
-    //Fills ja no tenen més fulles, s'explora germans del pare.
-    fseek(file, toExploreLeaf->actualPosBlock + LENGTH_DIRECTORY, SEEK_SET);
-    fread(&var16, sizeof(var16), 1, file);
-    toExploreLeaf->actualPosBlock += var16;
 
-    if (!found) {
-        deepSearch(fileToFind, ext4Info, toExploreLeaf, found);
-    }
 
 }
 
@@ -354,26 +340,16 @@ void explore(char * fileToFind,  int howMany, int operation, ext4 ext4Info) {
     int found = 0;
     __uint16_t inodeSize = ext4Info.inode.inodeSize;
 
+    __uint64_t in = ext4Info.posInodeTable * ext4Info.blockSize + inodeSize * howMany;
 
-    __uint64_t in = ext4Info.posInodeTable * ext4Info.blockSize  + inodeSize * howMany;
-
-    rootLeaf.actualPosBlock = findBlock(in, ext4Info.blockSize);
-    found = findFileinDirectory(rootLeaf.actualPosBlock, fileToFind);
+    rootLeaf.actualPosBlock = findBlock(in + EXTENT_TREE, ext4Info.blockSize, operation);
     rootLeaf.fatherPosBlock = rootLeaf.actualPosBlock;
 
+    deepSearch(fileToFind, ext4Info, rootLeaf, &found, operation);
     if (found == 0) {
-        if (operation == 1) {
-            printf(FILE_NOT_FOUND);
-        } else {
-
-            deepSearch(fileToFind, ext4Info, &rootLeaf, &found);
-
-            if (found == 0) {
-                printf(FILE_NOT_FOUND);
-            }
-        }
-
+        printf(FILE_NOT_FOUND);
     }
+
 }
 
 
@@ -383,9 +359,6 @@ void explore(char * fileToFind,  int howMany, int operation, ext4 ext4Info) {
  */
 void searchExt4(FILE * files, char * fileToFind, int operation) {
     int posGroupDescrip;
-    __uint32_t posLowInodeTable;
-    __uint32_t posHighInodeTable;
-    __uint64_t posInodeTable;
 
     file = files;
     ext4 ext4Info = readExt4(file);
@@ -394,22 +367,10 @@ void searchExt4(FILE * files, char * fileToFind, int operation) {
     //posicio group descriptor
     posGroupDescrip = blockSize == EXT_PADDING_SUPER_BLOCK ? 2*EXT_PADDING_SUPER_BLOCK:blockSize;
 
-    //Lower 32 bits de inode table
-    fseek(file, 0x8 + posGroupDescrip, SEEK_SET);
-    fread(&posLowInodeTable, sizeof(posLowInodeTable), 1, file);
-
-    //high 32 bits de inode table
-    fseek(file, 0x24 + posGroupDescrip, SEEK_SET);
-    fread(&posHighInodeTable, sizeof(posHighInodeTable), 1, file);
-
-    posInodeTable = posHighInodeTable << 32 | posLowInodeTable;
+    getPosInodeTable (&ext4Info, posGroupDescrip);
 
     ext4Info.blockSize = blockSize;
-    ext4Info.posInodeTable = posInodeTable;
-
     explore(fileToFind, 1, operation, ext4Info);
-
-
 }
 
 

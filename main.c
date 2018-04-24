@@ -11,6 +11,7 @@
 #define INFO_CODE 0
 #define SEARCH_CODE 1
 #define DEEP_CODE 2
+#define SHOW_CODE 3
 #define ERROR_CODE -1
 
 #define N_ARGS_INFO      3
@@ -62,6 +63,13 @@ int main(int argc, char * argv[]) {
                 return EXIT_FAILURE;
             }
             chooseFilesystem(argv[2], argv[3], DEEP_CODE);
+            break;
+        case SHOW_CODE:
+            if (argc != N_ARGS_SEARCH) {
+                printf(MSG_ERR_ARGS);
+                return EXIT_FAILURE;
+            }
+            chooseFilesystem(argv[2], argv[3], SHOW_CODE);
             break;
 
         default:
