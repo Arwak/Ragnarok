@@ -7,6 +7,7 @@
 #define INFO "-info"
 #define SEARCH "-search"
 #define DEEP_SEARCH "-deepsearch"
+#define SHOW "-show"
 
 #define INFO_CODE 0
 #define SEARCH_CODE 1
@@ -32,6 +33,10 @@ int switchOperation(char * string) {
 
         if (strcmp(DEEP_SEARCH, string) == 0) {
             return DEEP_CODE;
+        }
+
+        if (strcmp(SHOW, string) == 0) {
+            return SHOW_CODE;
         }
 
         return ERROR_CODE;
