@@ -115,7 +115,10 @@ void chooseFilesystem (char * pathFile, char * pathFileToFind, int operation) {
                                 break;
 
                             case SEARCH:
-                                searchFat32(file, pathFileToFind);
+                                searchFat32(file, pathFileToFind, SEARCH);
+                                break;
+                            case DEEP:
+                                searchFat32(file, pathFileToFind, DEEP);
                                 break;
                         }
 

@@ -15,21 +15,38 @@
 #define NUMBER_OF_FATS               0x10
 #define ROOT_ENTRIES                 0x11
 #define NUMBER_FATS_SECTOR           0x24
+#define ROOT_FIRST_CLUSTER           0x2C
 #define LABEL                        0x47
+
+#define NAME                         0x0D
+#define ATTRIBUTES                   0x0B
+#define DATE                         0x10
+#define NEXT_CLUSTER_LOW             0x14
+#define NEXT_CLUSTER_HIGH            0x1A
+#define SIZE                         0x1C
 
 typedef struct fat32Information {
     char systemName[11];
     __uint16_t sectorSize;
-    unsigned char sectorCluster;
+    unsigned char sectorPerCluster;
     __uint16_t reservedSectors;
     __uint32_t numberOfFats;
     __uint16_t maximumRootEntries;
-    __uint16_t numberOfFatsPerSector;
+    __uint32_t rootFirstCluster;
+    __uint16_t numberOfSectorsPerFat;
     char label[9];
 } fat32;
 
-void readFat32(FILE *file);
+typedef struct ClusterFat32Information {
+    char name[11];
+    __uint8_t attributs;
+    __uint16_t date;
+    __uint32_t nextCluster;
+    __uint32_t size;
+} clusterData;
 
-void searchFat32(FILE * file, char * fileTofind);
+fat32 readFat32(FILE *file);
+
+void searchFat32(FILE * file, char * fileToFind, int operation);
 
 #endif //RAGNAROK_FAT_H
