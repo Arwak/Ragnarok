@@ -177,9 +177,9 @@ void searchFile(FILE * file, char * fileToFind, int clusterNum, fat32 info) {
 
             } else {
                 printf("File [%s] not matches input [%s].\n", clusterInfo.name, fileToFind);
-
+                searchFile(file, fileToFind, clusterInfo.nextCluster, info);
             }
-            clusterInfo.nextCluster++;
+
         }
     } while (clusterInfo.nextCluster < 0x0FFFFFF8);
 
