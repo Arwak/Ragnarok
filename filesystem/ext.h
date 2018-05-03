@@ -76,7 +76,9 @@ typedef struct info {
 typedef struct leaf {
     __uint64_t fatherPosBlock;
     __uint64_t actualPosBlock;
-
+    __uint16_t maxLen;
+    int stop;
+    int numBlocks;
 } leaf;
 
 
