@@ -74,12 +74,14 @@ typedef struct info {
 } ext4;
 
 typedef struct leaf {
+    __uint16_t numberValidEntries;
     __uint64_t fatherPosBlock;
     __uint64_t actualPosBlock;
-    __uint16_t maxLen;
-    int stop;
-    int numBlocks;
+    __uint16_t maxEntries;
 } leaf;
+
+
+
 
 
 ext4 readExt4(FILE *file);
