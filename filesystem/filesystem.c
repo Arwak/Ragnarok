@@ -54,6 +54,22 @@ void chooseExt (FILE* file, char * pathToFile, int operation) {
             case SHOW:
                 searchExt4(file, pathToFile, SHOW);
                 break;
+            case READ_CODE:
+                searchExt4(file, pathToFile, READ_CODE);
+                break;
+            case WRITE_CODE:
+                searchExt4(file, pathToFile, WRITE_CODE);
+                break;
+            case HIDE_CODE:
+                printf("This operation is not valid with this type of volume\n");
+                break;
+            case SHIDE_CODE:
+                printf("This operation is not valid with this type of volume\n");
+                break;
+            case DATE_CODE:
+                searchExt4(file, pathToFile, DATE_CODE);
+                break;
+
         }
 
     } else {

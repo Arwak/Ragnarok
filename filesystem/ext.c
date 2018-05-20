@@ -136,7 +136,7 @@ void showContentofFile(uint64_t offset, __uint64_t ee_len) {
     char c = 0;
     __uint64_t i = 0;
 
-    printf("File Found! Showing content...");
+    printf("File Found! Showing content...\n");
 
     fseek(file, offset, SEEK_SET);
 
@@ -235,6 +235,32 @@ void fileFoundInformation(__uint64_t offset) {
     printf("File Found! Size: %lli Created on: %s\n", size, buff);
 }
 
+void changeRead(__uint64_t offset){
+
+    __uint16_t permisos;
+
+    fseek(file, offset, SEEK_SET);
+    fread(&permisos, sizeof(permisos), 1, file);
+
+    permisos |= 0xDC;
+
+    printf("Permissos %u\n", permisos);
+
+}
+
+void changeReadOff(__uint64_t offset){
+
+    __uint16_t permisos;
+
+    fseek(file, offset, SEEK_SET);
+    fread(&permisos, sizeof(permisos), 1, file);
+
+    permisos &= 0xFEDC;
+
+
+    printf("Permissos %u\n", permisos);
+
+}
 
 void exploreExtentTree (char * fileToFind, ext4 ext4Info, __uint32_t inode, int *found, int operation) {
 
@@ -324,20 +350,30 @@ void exploreExtentTree (char * fileToFind, ext4 ext4Info, __uint32_t inode, int 
                         case 1:
                             printf("Filename found: %s, Filename expected: %s\n", fileName, fileToFind);
                             if (strcmp(fileName, fileToFind) == 0) {
+                                posicioBlock = ext4Info.posInodeTable * ext4Info.blockSize +
+                                               inodeSize * (nextInode - 1);
 
                                 switch (operation) {
                                     case DEEP:
-                                        posicioBlock = ext4Info.posInodeTable * ext4Info.blockSize +
-                                                       inodeSize * (nextInode - 1);
                                         fileFoundInformation(posicioBlock);
 
                                         break;
                                     case SHOW:
-                                        posicioBlock = ext4Info.posInodeTable * ext4Info.blockSize +
-                                                       inodeSize * (nextInode - 1);
                                         posicioBlock += EXTENT_TREE;
                                         int a = 0;
                                         findStartOfFile(nextInode, ext4Info, posicioBlock, a);
+
+                                        break;
+                                    case READ_CODE:
+                                        changeRead(posicioBlock);
+
+                                        break;
+                                    case WRITE_CODE:
+                                        fileFoundInformation(posicioBlock);
+
+                                        break;
+                                    case DATE_CODE:
+                                        fileFoundInformation(posicioBlock);
 
                                         break;
                                 }
@@ -380,7 +416,7 @@ void exploreExtentTree (char * fileToFind, ext4 ext4Info, __uint32_t inode, int 
     }
 }
 
-void exploreExtentTreeDirectori (char * fileToFind, ext4 ext4Info, int *found) {
+void exploreExtentTreeDirectori (char * fileToFind, ext4 ext4Info, int *found){
 
 
     __uint16_t inodeSize = ext4Info.inode.inodeSize;
@@ -429,9 +465,9 @@ void exploreExtentTreeDirectori (char * fileToFind, ext4 ext4Info, int *found) {
 
             directoryEnd = offset + ee_len * ext4Info.blockSize;
 
-            while (offset <= directoryEnd && !(*found)) {
+            while (offset <= directoryEnd + 1 && !(*found)) {
 
-                printf("Offset %llu, directoryEnd %llu\n", offset, directoryEnd);
+                printf("Entro amb offset %llu, %llu\n", offset, directoryEnd);
 
                 //Next Inode
                 fseek(file, (long)offset, SEEK_SET);
@@ -454,6 +490,7 @@ void exploreExtentTreeDirectori (char * fileToFind, ext4 ext4Info, int *found) {
                     fseek(file, (long)offset + 0x4, SEEK_SET);
                     fread(&rec_len, sizeof(rec_len), 1, file);
 
+                    printf("File %s\n", fileName);
 
                     if (strcmp(fileName, ".") == 0 || strcmp(fileName, "..") == 0) {
                         //Saltem . i ..
@@ -483,13 +520,13 @@ void exploreExtentTreeDirectori (char * fileToFind, ext4 ext4Info, int *found) {
 
                         case 2:
                             printf("Directory found: %s\n", fileName);
-                            //exploreExtentTree(fileToFind, ext4Info, nextInode, found, operation);
-
                             break;
 
                     }
 
                     offset += rec_len;
+
+                    printf("Offset %llu, dire %llu\n", offset, directoryEnd);
 
                 } else {
                     break;

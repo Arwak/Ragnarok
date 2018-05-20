@@ -33,7 +33,11 @@
 #define LAST_MOUNT                   0x2C
 #define LAST_WRITTEN                 0x30
 
-
+#define READ_CODE 4
+#define WRITE_CODE 5
+#define HIDE_CODE 6
+#define SHIDE_CODE 7
+#define DATE_CODE 8
 
 
 typedef struct inodeInfo {
@@ -71,7 +75,7 @@ typedef struct info {
     __uint64_t posInodeTable;
 
 } ext4;
-i
+
 ext4 readExt4(FILE *file);
 void showExt(ext4 ext);
 void searchExt4(FILE * file, char * filetofind, int operation);
