@@ -8,9 +8,8 @@
 #include <stdio.h>
 #include <time.h>
 
-#define EXT4                            4
-#define EXT3                            3
-#define EXT2                            2
+#define DEEP                            2
+#define SHOW                            3
 
 #define EXT_PADDING_SUPER_BLOCK        1024
 
