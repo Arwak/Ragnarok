@@ -10,14 +10,9 @@
 
 #include "ext.h"
 
-#define DEPTH 0x06
+
 #define EXTENT_TREE 0x28
-#define UPPER_BLOCK 0x6
-#define LOW_BLOCK 0x8
 #define HEADER_SIZE 12
-#define LENGTH_DIRECTORY   0x4
-#define FILE_NAME 0x8
-#define LENGTH_FILE 0x6
 
 #define SEARCH_OPERATION 1
 #define SHOW 3
@@ -136,36 +131,28 @@ void getPosInodeTable (ext4 *ext4Info, int posGroupDescrip) {
     ext4Info->posInodeTable = (__uint64_t)posHighInodeTable << 32 | posLowInodeTable;
 }
 
-void showContentofFile(__uint64_t *offset) {
+void showContentofFile(uint64_t offset, __uint64_t ee_len) {
 
-    char c = '0';
+    char c = 0;
+    __uint64_t i = 0;
 
     printf("File Found! Showing content...");
 
+    fseek(file, offset, SEEK_SET);
 
-    fseek(file, (long)*offset, SEEK_SET);
-    fread(&c, sizeof(char), 1, file);
-
-    while (c != 'h') {
+    for (i = 0; i < ee_len; i++) {
         fread(&c, sizeof(char), 1, file);
         printf("%c", c);
-
+        if(c == '\0')break;
     }
-    printf("%c", c);
 
-    while (c != '\0') {
-
-        fread(&c, sizeof(char), 1, file);
-        printf("%c", c);
-
-    }
 
 
 }
 
 void findStartOfFile (__uint32_t inode, ext4 ext4Info, __uint64_t posicioReal, int i) {
 
-    __uint16_t start_hi, depth, entries;
+    __uint16_t start_hi, depth, entries, ee_len = 0;
     __uint32_t start_lo;
 
     __uint64_t offset, posicioBlock;
@@ -180,11 +167,12 @@ void findStartOfFile (__uint32_t inode, ext4 ext4Info, __uint64_t posicioReal, i
         fseek(file, (long)posicioReal + 0x2, SEEK_SET);
         fread(&entries, sizeof(entries), 1, file);
 
-        printf("Entries %u\n", entries);
-
         int a = 0;
 
         for (a = 0; a < entries; a++) {
+
+            fseek(file, (long)posicioReal + HEADER_SIZE + 0x4, SEEK_SET);
+            fread(&ee_len, sizeof(ee_len), 1, file);
             //Per cada fulla processem els blocs de cadascuna
             fseek(file, (long)posicioReal + HEADER_SIZE + 0x6, SEEK_SET);
             fread(&start_hi, sizeof(start_hi), 1, file);
@@ -194,14 +182,11 @@ void findStartOfFile (__uint32_t inode, ext4 ext4Info, __uint64_t posicioReal, i
 
             posicioBlock = (__uint64_t) start_hi << 32 | start_lo;
 
-            fseek(file, (long)posicioReal + HEADER_SIZE + 0x2, SEEK_SET);
-            fread(&start_hi, sizeof(start_hi), 1, file);
-
             offset = posicioBlock * ext4Info.blockSize;
 
-            showContentofFile(&offset);
-            //findStartOfFile(inode, ext4Info, offset, i);
+            showContentofFile(offset, (__uint64_t) (ee_len * ext4Info.blockSize));
 
+            posicioReal += HEADER_SIZE;
 
         }
 

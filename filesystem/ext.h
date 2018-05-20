@@ -71,18 +71,7 @@ typedef struct info {
     __uint64_t posInodeTable;
 
 } ext4;
-
-typedef struct leaf {
-    __uint16_t numberValidEntries;
-    __uint64_t fatherPosBlock;
-    __uint64_t actualPosBlock;
-    __uint16_t maxEntries;
-} leaf;
-
-
-
-
-
+i
 ext4 readExt4(FILE *file);
 void showExt(ext4 ext);
 void searchExt4(FILE * file, char * filetofind, int operation);
