@@ -136,52 +136,94 @@ void getPosInodeTable (ext4 *ext4Info, int posGroupDescrip) {
     ext4Info->posInodeTable = (__uint64_t)posHighInodeTable << 32 | posLowInodeTable;
 }
 
+void showContentofFile(__uint64_t *offset) {
+
+    char c = '0';
+
+    printf("File Found! Showing content...");
 
 
-void showContentFile (__uint32_t inode, ext4 ext4Info) {
+    fseek(file, (long)*offset, SEEK_SET);
+    fread(&c, sizeof(char), 1, file);
 
-    __uint16_t inodeSize = ext4Info.inode.inodeSize;
-    __uint64_t posicioReal = ext4Info.posInodeTable * ext4Info.blockSize + inodeSize * (inode - 1);
+    while (c != 'h') {
+        fread(&c, sizeof(char), 1, file);
+        printf("%c", c);
 
-    posicioReal += EXTENT_TREE;
+    }
+    printf("%c", c);
 
-    __uint16_t start_hi;
+    while (c != '\0') {
+
+        fread(&c, sizeof(char), 1, file);
+        printf("%c", c);
+
+    }
+
+
+}
+
+void findStartOfFile (__uint32_t inode, ext4 ext4Info, __uint64_t posicioReal, int i) {
+
+    __uint16_t start_hi, depth, entries;
     __uint32_t start_lo;
 
     __uint64_t offset, posicioBlock;
 
-    //Per cada fulla processem els blocs de cadascuna
-    fseek(file, (long)posicioReal + HEADER_SIZE + 0x6, SEEK_SET);
-    fread(&start_hi, sizeof(start_hi), 1, file);
+    //Busquem Depth
+    fseek(file, (long)posicioReal + 0x6, SEEK_SET);
+    fread(&depth, sizeof(depth), 1, file);
 
-    fseek(file, (long)posicioReal + HEADER_SIZE + 0x8, SEEK_SET);
-    fread(&start_lo, sizeof(start_lo), 1, file);
+    if (depth == 0) {
 
-    posicioBlock = (__uint64_t) start_hi << 32 | start_lo;
+        //Busquem Depth
+        fseek(file, (long)posicioReal + 0x2, SEEK_SET);
+        fread(&entries, sizeof(entries), 1, file);
 
-    fseek(file, (long)posicioReal + HEADER_SIZE + 0x2, SEEK_SET);
-    fread(&start_hi, sizeof(start_hi), 1, file);
+        printf("Entries %u\n", entries);
 
-    printf("Signature %x\n", start_hi);
+        int a = 0;
 
-    offset = posicioBlock * ext4Info.blockSize;
+        for (a = 0; a < entries; a++) {
+            //Per cada fulla processem els blocs de cadascuna
+            fseek(file, (long)posicioReal + HEADER_SIZE + 0x6, SEEK_SET);
+            fread(&start_hi, sizeof(start_hi), 1, file);
 
-    char c;
-    int i = 0;
+            fseek(file, (long)posicioReal + HEADER_SIZE + 0x8, SEEK_SET);
+            fread(&start_lo, sizeof(start_lo), 1, file);
 
-    printf("File Found! Showing content...");
+            posicioBlock = (__uint64_t) start_hi << 32 | start_lo;
 
-    do {
+            fseek(file, (long)posicioReal + HEADER_SIZE + 0x2, SEEK_SET);
+            fread(&start_hi, sizeof(start_hi), 1, file);
 
-        fseek(file, (long)offset + i, SEEK_SET);
-        fread(&c, sizeof(char), 1, file);
+            offset = posicioBlock * ext4Info.blockSize;
 
-        i++;
+            showContentofFile(&offset);
+            //findStartOfFile(inode, ext4Info, offset, i);
 
-        printf("%c", c);
 
-    } while (c != '\0');
+        }
 
+    } else {
+
+        //Per cada fulla processem els blocs de cadascuna
+        fseek(file, (long)posicioReal + HEADER_SIZE + 0x8, SEEK_SET);
+        fread(&start_hi, sizeof(start_hi), 1, file);
+
+        fseek(file, (long)posicioReal + HEADER_SIZE + 0x4, SEEK_SET);
+        fread(&start_lo, sizeof(start_lo), 1, file);
+
+        posicioBlock = (__uint64_t) start_hi << 32 | start_lo;
+
+        fseek(file, (long)posicioReal + HEADER_SIZE + 0x2, SEEK_SET);
+        fread(&start_hi, sizeof(start_hi), 1, file);
+
+        offset = posicioBlock * ext4Info.blockSize;
+
+        findStartOfFile(inode, ext4Info, offset, i);
+
+    }
 
 }
 
@@ -306,7 +348,11 @@ void exploreExtentTree (char * fileToFind, ext4 ext4Info, __uint32_t inode, int 
 
                                         break;
                                     case SHOW:
-                                        showContentFile(nextInode, ext4Info);
+                                        posicioBlock = ext4Info.posInodeTable * ext4Info.blockSize +
+                                                       inodeSize * (nextInode - 1);
+                                        posicioBlock += EXTENT_TREE;
+                                        int a = 0;
+                                        findStartOfFile(nextInode, ext4Info, posicioBlock, a);
 
                                         break;
                                 }

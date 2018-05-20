@@ -4,10 +4,10 @@
 
 #include "filesystem/filesystem.h"
 
-#define INFO "-info"
-#define SEARCH "-search"
-#define DEEP_SEARCH "-deepsearch"
-#define SHOW "-show"
+#define INFO_STRING "-info"
+#define SEARCH_STRING "-search"
+#define DEEP_SEARCH_STRING "-deepsearch"
+#define SHOW_STRING "-show"
 
 #define INFO_CODE 0
 #define SEARCH_CODE 1
@@ -24,18 +24,18 @@
 
 int switchOperation(char * string) {
 
-    if ( strcmp(INFO, string) == 0) {
+    if ( strcmp(INFO_STRING, string) == 0) {
         return INFO_CODE;
     } else {
-        if (strcmp(SEARCH, string) == 0) {
+        if (strcmp(SEARCH_STRING, string) == 0) {
             return SEARCH_CODE;
         }
 
-        if (strcmp(DEEP_SEARCH, string) == 0) {
+        if (strcmp(DEEP_SEARCH_STRING, string) == 0) {
             return DEEP_CODE;
         }
 
-        if (strcmp(SHOW, string) == 0) {
+        if (strcmp(SHOW_STRING, string) == 0) {
             return SHOW_CODE;
         }
 
