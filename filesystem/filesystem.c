@@ -1,10 +1,15 @@
-//
-// Created by Clàudia Peiró Vidal on 13/4/18.
-
-// 1 Files in this filesystem use extents (INCOMPAT_EXTENTS). --> ext4
-// 1 Has a journal (COMPAT_HAS_JOURNAL). --> ext3
-// 0 Has a journal (COMPAT_HAS_JOURNAL). --> ext2
-//
+/**
+ * Sistemes Operatius Avançats - Ragnarok
+ *
+ * Modul-> FILESYSTEM.c
+ *
+ *
+ * In this file you will find all the functionalities about the
+ * differentiation between ext and fat.
+ *
+ * Authors: Xavier Roma Castells            xavier.roma.2015
+ *          Clàudia Peiró i Vidal           claudia.peiro.2015
+ */
 
 
 #include "filesystem.h"
@@ -30,7 +35,16 @@
 #define DEEP                            2
 #define SHOW                            3
 
-
+/**
+ * chooseExt
+ * ------------------------------------
+ *
+ * Will determine type of ext of the volume.
+ * @param file
+ * @param pathToFile
+ * @param date
+ * @param operation
+ */
 void chooseExt (FILE* file, char * pathToFile, char * date, int operation) {
     unsigned long extents;
     long aux;
@@ -86,6 +100,16 @@ void chooseExt (FILE* file, char * pathToFile, char * date, int operation) {
     }
 }
 
+/**
+ * chooseFilesystem
+ * ------------------------------------
+ *
+ * Will determine type of the volume.
+ * @param pathFile
+ * @param pathFileToFind
+ * @param date
+ * @param operation
+ */
 void chooseFilesystem (char * pathFile, char * pathFileToFind, char * date, int operation) {
     FILE* file;
 

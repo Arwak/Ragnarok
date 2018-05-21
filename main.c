@@ -1,3 +1,29 @@
+/**
+ * Sistemes Operatius Avançats - Ragnarok - 21/05/2018
+ *
+ * Modul-> Main
+ *
+ * Authors: Xavier Roma Castells            xavier.roma.2015
+ *          Clàudia Peiró i Vidal           claudia.peiro.2015
+ *
+ *
+ * This project will be able to determine the type of volume introduced
+ * (EXT2, EXT3, EXT4, FAT32, FAT16). It will also be able to perform some commands.
+ * Valid commands:
+ *      - info : will show some information of the volume [EXT4 and FAT32]
+ *      - search : will search for the introduced file on the root directory. [EXT4 and FAT32]
+ *      - deepsearch : will search for the introduced file on all the tree directory [EXT4 and FAT32]
+ *      - show : will show the introduced file [EXT4 and FAT32]
+ *      - r : change read permissions [EXT4 and FAT32]
+ *      - w : remove read permissions [EXT4 and FAT32]
+ *      - h : enable hidden file [FAT32]
+ *      - s : disable hidden file [FAT32]
+ *      - d <new date> : change creation file date [EXT4 and FAT32]
+ *
+ *
+ */
+
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -20,10 +46,6 @@
 #define SHOW_CODE 3
 #define ERROR_CODE -1
 
-
-
-
-
 #define N_ARGS_INFO      3
 #define N_ARGS_SEARCH    4
 #define N_ARGS_DATE      5
@@ -32,7 +54,15 @@
 #define MSG_ERR_OPERATION   "Error: Unknown operation.\n"
 #define MSG_ERR_DATE        "Error: Invalid date format, must be ddmmyyyy.\n"
 
-
+/**
+ * switchOperation
+ * ------------------------------------
+ *
+ * Will determine which operation will be perfomed.
+ *
+ * @param string
+ * @return
+ */
 int switchOperation(char * string) {
 
     if ( strcmp(INFO_STRING, string) == 0) {
