@@ -119,7 +119,7 @@ clusterData readCluster(FILE *file, uint64_t pos) {
     uint16_t low;
     uint32_t high;
 
-    fseek(file, NAME + pos, SEEK_SET);
+    fseek(file, pos, SEEK_SET);
     fread(cluster.name, sizeof(cluster.name), 1, file);
 
     fseek(file, ATTRIBUTES + pos, SEEK_SET);
@@ -174,11 +174,13 @@ int searchDeepFile(FILE * file, uint32_t cluster, fat32 info, char * fileToFind,
 
             if ((dir.attributs & 0x10) != 0) {
                 //si es tracta d'un directori
-                printf("5");
 
-                if (strcmp(dir.name, ".          ") != 0 && strcmp(dir.name, "..         ") != 0) {
+                if (strcmp(dir.name, ".          ") != 0 && strcmp(dir.name, "..         ") != 0 &&(dir.name[0] != '.')) {
                     //si el directori no es dot o dotdot entrem a exploral recursivament
+
+                    printf("ENTROOOO -------");
                     found = searchDeepFile(file, dir.nextCluster, info, fileToFind, result);
+                    printf("SURTOOO -------");
                 }
 
                 if (found) {
@@ -220,6 +222,12 @@ int searchDeepFile(FILE * file, uint32_t cluster, fat32 info, char * fileToFind,
                     long_name_counter = 0;
                     free(long_file_names);
                     long_file_names = malloc(sizeof(lfn));
+                }
+
+                if (strcmp(dir.name, fileToFind) == 0) {
+                    printf("I found the fucking file");
+                    found = 1;
+                    return found;
                 }
 
             }
