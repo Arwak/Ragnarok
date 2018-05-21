@@ -31,7 +31,7 @@
 #define SHOW                            3
 
 
-void chooseExt (FILE* file, char * pathToFile, int operation) {
+void chooseExt (FILE* file, char * pathToFile, char * date, int operation) {
     unsigned long extents;
     long aux;
 
@@ -46,19 +46,19 @@ void chooseExt (FILE* file, char * pathToFile, int operation) {
                 break;
 
             case SEARCH:
-                searchExt4(file, pathToFile, SEARCH);
+                searchExt4(file, pathToFile, "0", SEARCH);
                 break;
             case DEEP:
-                searchExt4(file, pathToFile, DEEP);
+                searchExt4(file, pathToFile, "0", DEEP);
                 break;
             case SHOW:
-                searchExt4(file, pathToFile, SHOW);
+                searchExt4(file, pathToFile, "0", SHOW);
                 break;
             case READ_CODE:
-                searchExt4(file, pathToFile, READ_CODE);
+                searchExt4(file, pathToFile, "0", READ_CODE);
                 break;
             case WRITE_CODE:
-                searchExt4(file, pathToFile, WRITE_CODE);
+                searchExt4(file, pathToFile, "0", WRITE_CODE);
                 break;
             case HIDE_CODE:
                 printf("This operation is not valid with this type of volume\n");
@@ -67,7 +67,7 @@ void chooseExt (FILE* file, char * pathToFile, int operation) {
                 printf("This operation is not valid with this type of volume\n");
                 break;
             case DATE_CODE:
-                searchExt4(file, pathToFile, DATE_CODE);
+                searchExt4(file, pathToFile, date, DATE_CODE);
                 break;
 
         }
@@ -86,14 +86,14 @@ void chooseExt (FILE* file, char * pathToFile, int operation) {
     }
 }
 
-void chooseFilesystem (char * pathFile, char * pathFileToFind, int operation) {
+void chooseFilesystem (char * pathFile, char * pathFileToFind, char * date, int operation) {
     FILE* file;
 
     unsigned short magicSignature;
     unsigned short upperOffset;
 
 
-    file = fopen(pathFile, "rb");
+    file = fopen(pathFile, "rb+");
 
     if (file == NULL) {
         printf(MSG_ERR_FITXER);
@@ -104,7 +104,7 @@ void chooseFilesystem (char * pathFile, char * pathFileToFind, int operation) {
         fread(&magicSignature, sizeof(magicSignature), 1, file);
 
         if (magicSignature == EXT_MAGIC_SEQUENCE) {             //it will be a ext
-            chooseExt(file, pathFileToFind, operation);
+            chooseExt(file, pathFileToFind, date, operation);
         } else {
 
             //Possible fat

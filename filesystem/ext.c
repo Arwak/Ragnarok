@@ -235,6 +235,75 @@ void fileFoundInformation(__uint64_t offset) {
     printf("File Found! Size: %lli Created on: %s\n", size, buff);
 }
 
+void showPermissos (__uint64_t offset) {
+    char read = 'r';
+    char write = 'w';
+    char execute = 'x';
+
+    __uint16_t comprovacio;
+
+    fseek(file, offset, SEEK_SET);
+    fread(&comprovacio, sizeof(comprovacio), 1, file);
+
+
+    if (comprovacio & 0x01) {
+        printf("%c", execute);
+    } else {
+        printf("-");
+    }
+
+    if (comprovacio & 0x02) {
+        printf("%c", write);
+    } else {
+        printf("-");
+    }
+
+    if (comprovacio & 0x04) {
+        printf("%c", read);
+    } else {
+        printf("-");
+    }
+
+    if (comprovacio & 0x08) {
+        printf("%c", execute);
+    } else {
+        printf("-");
+    }
+
+    if (comprovacio & 0x10) {
+        printf("%c", write);
+    } else {
+        printf("-");
+    }
+
+    if (comprovacio & 0x20) {
+        printf("%c", read);
+    } else {
+        printf("-");
+    }
+
+    if (comprovacio & 0x40) {
+        printf("%c", execute);
+    } else {
+        printf("-");
+    }
+
+    if (comprovacio & 0x80) {
+        printf("%c", write);
+    } else {
+        printf("-");
+    }
+
+    if (comprovacio & 0x100) {
+        printf("%c\n", read);
+    } else {
+        printf("-\n");
+    }
+
+
+
+}
+
 void changeRead(__uint64_t offset){
 
     __uint16_t permisos;
@@ -242,9 +311,16 @@ void changeRead(__uint64_t offset){
     fseek(file, offset, SEEK_SET);
     fread(&permisos, sizeof(permisos), 1, file);
 
-    permisos |= 0xDC;
+    printf("Permits before modifications: ");
+    showPermissos(offset);
 
-    printf("Permissos %u\n", permisos);
+    permisos |= 0x124;
+
+    fseek(file, offset, SEEK_SET);
+    fwrite(&permisos, sizeof(permisos), 1, file);
+
+    printf("Permits after modifications: ");
+    showPermissos(offset);
 
 }
 
@@ -255,14 +331,90 @@ void changeReadOff(__uint64_t offset){
     fseek(file, offset, SEEK_SET);
     fread(&permisos, sizeof(permisos), 1, file);
 
-    permisos &= 0xFEDC;
+    printf("Permits before modifications: ");
+    showPermissos(offset);
 
+    permisos &= 0xFEDB;
 
-    printf("Permissos %u\n", permisos);
+    fseek(file, offset, SEEK_SET);
+    fwrite(&permisos, sizeof(permisos), 1, file);
+
+    printf("Permits after modifications: ");
+    showPermissos(offset);
 
 }
 
-void exploreExtentTree (char * fileToFind, ext4 ext4Info, __uint32_t inode, int *found, int operation) {
+void changeCreationTime(__uint64_t offset, char * date) {
+    __uint32_t var32;
+
+    fseek(file, (long)offset + 0x90, SEEK_SET);
+    fread(&var32, sizeof(var32), 1, file);
+
+    time_t ts = var32;
+
+    char buff[100], buff2[100];
+
+    strftime(buff, 100, "%d-%m-%Y", localtime(&ts));
+    printf("Creation time before modification %s\n", buff);
+
+    char year[5];
+    char day[3];
+    char month[3];
+
+    int i = 0;
+
+    for (i = 0; i < 2; i++) {
+        day[i] = date[i];
+    }
+    day[i] = '\0';
+
+    int a = 0;
+    for (i = 2; i < 4; i++) {
+        month[a] = date[i];
+        a++;
+    }
+    month[a] = '\0';
+
+    a = 0;
+    for (i = 4; i < 8; i++) {
+        year[a] = date[i];
+        a++;
+    }
+    year[a] = '\0';
+
+
+    printf("Year: %s, month: %s, day: %s\n", year, month, day);
+
+    struct tm t;
+    time_t t_of_day;
+
+    t.tm_year = atoi(year) - 1900;
+    t.tm_mon = atoi(month) - 1;           // Month, 0 - jan
+    t.tm_mday = atoi(day);          // Day of the month
+    t_of_day = mktime(&t);
+
+    strftime(buff2, 100, "%d-%m-%Y", localtime(&t_of_day));
+    printf("Creation time suposed modification %s\n", buff2);
+
+
+    /*fseek(file, (long)offset + 0x90, SEEK_SET);
+    fwrite(&t_of_day, sizeof(t_of_day), 1, file);
+
+    fseek(file, (long)offset + 0x90, SEEK_SET);
+    fread(&var32, sizeof(var32), 1, file);
+
+    ts = var32;
+
+    strftime(buff, 100, "%d-%m-%Y", localtime(&ts));
+    printf("Creation time after modification %s\n", buff);*/
+
+
+
+}
+
+
+
+void exploreExtentTree (char * fileToFind, ext4 ext4Info, __uint32_t inode, int *found, char * date, int operation) {
 
 
     __uint16_t inodeSize = ext4Info.inode.inodeSize;
@@ -365,15 +517,18 @@ void exploreExtentTree (char * fileToFind, ext4 ext4Info, __uint32_t inode, int 
 
                                         break;
                                     case READ_CODE:
+                                        printf("Changing read permits - Read on\n");
                                         changeRead(posicioBlock);
 
                                         break;
                                     case WRITE_CODE:
-                                        fileFoundInformation(posicioBlock);
+                                        printf("Changing read permits - Read off\n");
+                                        changeReadOff(posicioBlock);
 
                                         break;
                                     case DATE_CODE:
-                                        fileFoundInformation(posicioBlock);
+                                        printf("date %s\n", date);
+                                        changeCreationTime(posicioBlock, date);
 
                                         break;
                                 }
@@ -385,7 +540,7 @@ void exploreExtentTree (char * fileToFind, ext4 ext4Info, __uint32_t inode, int 
 
                         case 2:
                             printf("Directory found: %s\n", fileName);
-                            exploreExtentTree(fileToFind, ext4Info, nextInode, found, operation);
+                            exploreExtentTree(fileToFind, ext4Info, nextInode, found, date,operation);
 
                             break;
 
@@ -555,7 +710,7 @@ void exploreExtentTreeDirectori (char * fileToFind, ext4 ext4Info, int *found){
  * Primer haurem de buscar els group descriptors
  * @param file
  */
-void searchExt4(FILE * files, char * fileToFind, int operation) {
+void searchExt4(FILE * files, char * fileToFind, char * date ,int operation) {
     int posGroupDescrip;
 
     file = files;
@@ -574,7 +729,7 @@ void searchExt4(FILE * files, char * fileToFind, int operation) {
         exploreExtentTreeDirectori(fileToFind, ext4Info, &found);
 
     } else {
-        exploreExtentTree(fileToFind, ext4Info, 2, &found, operation);
+        exploreExtentTree(fileToFind, ext4Info, 2, &found, date, operation);
 
     }
 

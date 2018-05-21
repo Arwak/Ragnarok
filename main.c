@@ -30,6 +30,7 @@
 
 #define MSG_ERR_ARGS        "Error: Incorrect parameter number.\n"
 #define MSG_ERR_OPERATION   "Error: Unknown operation.\n"
+#define MSG_ERR_DATE        "Error: Invalid date format, must be ddmmyyyy.\n"
 
 
 int switchOperation(char * string) {
@@ -84,7 +85,7 @@ int main(int argc, char * argv[]) {
                 printf(MSG_ERR_ARGS);
                 return EXIT_FAILURE;
             }
-            chooseFilesystem(argv[2], argv[3], INFO_CODE);
+            chooseFilesystem(argv[2], argv[3],  "0", INFO_CODE);
 
             break;
         case SEARCH_CODE:
@@ -92,56 +93,61 @@ int main(int argc, char * argv[]) {
                 printf(MSG_ERR_ARGS);
                 return EXIT_FAILURE;
             }
-            chooseFilesystem(argv[2], argv[3], SEARCH_CODE);
+            chooseFilesystem(argv[2], argv[3],  "0", SEARCH_CODE);
             break;
         case DEEP_CODE:
             if (argc != N_ARGS_SEARCH) {
                 printf(MSG_ERR_ARGS);
                 return EXIT_FAILURE;
             }
-            chooseFilesystem(argv[2], argv[3], DEEP_CODE);
+            chooseFilesystem(argv[2], argv[3], "0",  DEEP_CODE);
             break;
         case SHOW_CODE:
             if (argc != N_ARGS_SEARCH) {
                 printf(MSG_ERR_ARGS);
                 return EXIT_FAILURE;
             }
-            chooseFilesystem(argv[2], argv[3], SHOW_CODE);
+            chooseFilesystem(argv[2], argv[3],  "0", SHOW_CODE);
             break;
         case READ_CODE:
             if (argc != N_ARGS_SEARCH) {
                 printf(MSG_ERR_ARGS);
                 return EXIT_FAILURE;
             }
-            chooseFilesystem(argv[2], argv[3], READ_CODE);
+            chooseFilesystem(argv[2], argv[3],  "0", READ_CODE);
             break;
         case WRITE_CODE:
             if (argc != N_ARGS_SEARCH) {
                 printf(MSG_ERR_ARGS);
                 return EXIT_FAILURE;
             }
-            chooseFilesystem(argv[2], argv[3], WRITE_CODE);
+            chooseFilesystem(argv[2], argv[3],  "0", WRITE_CODE);
             break;
         case HIDE_CODE:
             if (argc != N_ARGS_SEARCH) {
                 printf(MSG_ERR_ARGS);
                 return EXIT_FAILURE;
             }
-            chooseFilesystem(argv[2], argv[3], HIDE_CODE);
+            chooseFilesystem(argv[2], argv[3], "0", HIDE_CODE);
             break;
         case SHIDE_CODE:
             if (argc != N_ARGS_SEARCH) {
                 printf(MSG_ERR_ARGS);
                 return EXIT_FAILURE;
             }
-            chooseFilesystem(argv[2], argv[3], SHIDE_CODE);
+            chooseFilesystem(argv[2], argv[3], "0", SHIDE_CODE);
             break;
         case DATE_CODE:
             if (argc != N_ARGS_DATE) {
                 printf(MSG_ERR_ARGS);
                 return EXIT_FAILURE;
             }
-            chooseFilesystem(argv[2], argv[3], DATE_CODE);
+
+            if (strlen(argv[2]) != 8) {
+                printf(MSG_ERR_DATE);
+                return EXIT_FAILURE;
+            }
+            chooseFilesystem(argv[3], argv[4], argv[2], DATE_CODE);
             break;
 
         default:
