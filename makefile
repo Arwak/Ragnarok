@@ -1,6 +1,6 @@
-OBJECTS = main.o io.o /filesystem/ext.o /filesystem/fat.o /filesystem/filesystem.o
-SOURCE = main.c io.c /filesystem/ext.c /filesystem/fat.c /filesystem/filesystem.c /filesystem/ext.h /filesystem/fat.h /filesystem/filesystem.h
-CFLAGS = -Wall -Wextra -g -pthread -lpthread
+OBJECTS = main.o io.o filesystem/filesystem.o filesystem/ext.o filesystem/fat.o
+SOURCE = main.c io.c filesystem/filesystem.c filesystem/ext.c filesystem/fat.c filesystem/filesystem.h filesystem/ext.h filesystem/fat.h
+CFLAGS = -Wall -Wextra -g -pthread -lpthread -lm
 LDLIBS =
 
 CC = gcc -D_GNU_SOURCE

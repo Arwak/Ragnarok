@@ -25,7 +25,7 @@
 #define SEARCH_OPERATION 1
 #define SHOW 3
 
-#define FILE_NOT_FOUND "Error. File not found.\n"
+#define FILE_NOT_FOUND "\n\nError. File not found.\n"
 
 FILE * file;
 
@@ -141,6 +141,33 @@ ext4 readExt4(FILE *file) {
 
 
 /**
+ * showContentofFile
+ * ------------------------------------
+ *
+ * Will implement the command -show. It will show the content of a file.
+ *
+ * @param offset from where the content will start
+ * @param ee_len maximim content to read
+ */
+void showContentofFile(__uint64_t offset, __uint64_t ee_len) {
+
+    char c = 0;
+    __uint64_t i = 0;
+
+    printf("\n\nFile Found! Showing content...\n");
+
+    fseek(file, offset, SEEK_SET);
+
+    for (i = 0; i < ee_len; i++) {
+        fread(&c, sizeof(char), 1, file);
+        if(c == '\0')break;
+        printf("%c", c);
+
+    }
+
+}
+
+/**
  * getPosInodeTable
  * ------------------------------------
  *
@@ -165,34 +192,6 @@ void getPosInodeTable (ext4 *ext4Info, int posGroupDescrip) {
 
     ext4Info->posInodeTable = (__uint64_t)posHighInodeTable << 32 | posLowInodeTable;
 }
-
-/**
- * showContentofFile
- * ------------------------------------
- *
- * Will implement the command -show. It will show the content of a file.
- *
- * @param offset from where the content will start
- * @param ee_len maximim content to read
- */
-void showContentofFile(uint64_t offset, __uint64_t ee_len) {
-
-    char c = 0;
-    __uint64_t i = 0;
-
-    printf("\n\nFile Found! Showing content...\n");
-
-    fseek(file, offset, SEEK_SET);
-
-    for (i = 0; i < ee_len; i++) {
-        fread(&c, sizeof(char), 1, file);
-        if(c == '\0')break;
-        printf("%c", c);
-
-    }
-
-}
-
 
 /**
  * findStartOfFile
@@ -296,7 +295,7 @@ void fileFoundInformation(__uint64_t offset) {
     char buff[100];
 
     strftime(buff, 100, "%d-%m-%Y", localtime(&ts));
-    printf("\n\nFile Found! Size: %lli Created on: %s\n", size, buff);
+    printf("\n\nFile Found! Size: %ld Created on: %s\n", size, buff);
 }
 
 
@@ -393,7 +392,7 @@ void changeRead(__uint64_t offset){
     fseek(file, offset, SEEK_SET);
     fread(&permisos, sizeof(permisos), 1, file);
 
-    printf("Permits before modifications: ");
+    printf("Permissions before modifications: ");
     showPermissos(offset);
 
     permisos |= 0x124;
@@ -401,7 +400,7 @@ void changeRead(__uint64_t offset){
     fseek(file, offset, SEEK_SET);
     fwrite(&permisos, sizeof(permisos), 1, file);
 
-    printf("Permits after modifications: ");
+    printf("Permissions after modifications: ");
     showPermissos(offset);
 
 }
