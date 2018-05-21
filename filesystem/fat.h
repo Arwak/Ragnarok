@@ -48,7 +48,8 @@ typedef struct ClusterFat32Information {
 } clusterData;
 
 fat32 readFat32(FILE *file);
-
+void showFat(fat32 fat);
 void searchFat32(FILE * file, char * fileToFind, int operation);
+void showFile(FILE * file, char * fileToShow);
 
 #endif //RAGNAROK_FAT_H

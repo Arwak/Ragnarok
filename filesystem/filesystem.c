@@ -127,14 +127,31 @@ void chooseFilesystem (char * pathFile, char * pathFileToFind, int operation) {
                     if (upperOffset == HIGH_FAT32) {
                         switch (operation) {
                             case INFO:
-                                readFat32(file);
+                                showFat(readFat32(file));
                                 break;
-
                             case SEARCH:
                                 searchFat32(file, pathFileToFind, SEARCH);
                                 break;
                             case DEEP:
                                 searchFat32(file, pathFileToFind, DEEP);
+                                break;
+                            case SHOW:
+                                showFile(file, pathFileToFind);
+                                break;
+                            case READ_CODE:
+
+                                break;
+                            case WRITE_CODE:
+
+                                break;
+                            case HIDE_CODE:
+
+                                break;
+                            case SHIDE_CODE:
+
+                                break;
+                            case DATE_CODE:
+
                                 break;
                         }
 
