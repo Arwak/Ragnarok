@@ -7,6 +7,7 @@
 
 
 #include <stdio.h>
+#include <stdint.h>
 
 #define SYSTEM_NAME                  0x03
 #define SECTOR_SIZE                  0x0B
@@ -27,22 +28,22 @@
 
 typedef struct fat32Information {
     char systemName[11];
-    __uint16_t sectorSize;
+    uint16_t sectorSize;
     unsigned char sectorPerCluster;
-    __uint16_t reservedSectors;
-    __uint32_t numberOfFats;
-    __uint16_t maximumRootEntries;
-    __uint32_t rootFirstCluster;
-    __uint16_t numberOfSectorsPerFat;
+    uint16_t reservedSectors;
+    uint32_t numberOfFats;
+    uint16_t maximumRootEntries;
+    uint32_t rootFirstCluster;
+    uint16_t numberOfSectorsPerFat;
     char label[9];
 } fat32;
 
 typedef struct ClusterFat32Information {
     char name[11];
-    __uint8_t attributs;
-    __uint16_t date;
-    __uint32_t nextCluster;
-    __uint32_t size;
+    uint8_t attributs;
+    uint16_t date;
+    uint32_t nextCluster;
+    uint32_t size;
 } clusterData;
 
 fat32 readFat32(FILE *file);
