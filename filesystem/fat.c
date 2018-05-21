@@ -227,15 +227,16 @@ int searchDeepFile(FILE * file, uint32_t cluster, fat32 info, char * fileToFind,
             //avançem per la cadena actual de clusters
             clusterPos += 32;
         }
+        //s'ha acabat la cadena de clusters que estavem explorant
 
-
-
-        fseek(file, info.sectorSize * info.reservedSectors + cluster * sizeof(uint32_t), SEEK_SET);
+        //Anem al següent cluster
+        fseek(file, info.sectorSize * info.reservedSectors + sizeof(uint32_t) * cluster, SEEK_SET);
         fread(&cluster, sizeof(uint32_t), 1, file);
 
+        //eliminem el unused bits 32bits -> 28bits
         cluster = cluster & 0x0FFFFFFF;
 
-
+    //Fins que estigui corrupte 0x0FFFFFF7, o hagi el limit
     } while (cluster < 0x0FFFFFF7);
 
 
