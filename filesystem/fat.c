@@ -15,40 +15,43 @@
 typedef struct _LongFileName
 {
     uint8_t  seqNumber;
-    uint8_t  fileName[26];
+    uint8_t  fileName[13];
 
 } lfn;
 
 
+void concatLFN(char *name, lfn *pName, int size);
 
-lfn readLongFileName (FILE * file,  uint64_t pos) {
+lfn readLongFileName (FILE * file, uint64_t pos) {
     lfn out;
     uint8_t fileName_Part1[10];
     uint8_t fileName_Part2[12];
     uint8_t fileName_Part3[4];
-    int i = 0;
+    int i = 0, j = 0;
 
     fseek(file, pos, SEEK_SET);
-    fread(&out.seqNumber, sizeof(uint8_t), 1, file);
+    fread(&(out.seqNumber), sizeof(uint8_t), 1, file);
 
     fseek(file, pos + sizeof(uint8_t), SEEK_SET);
     fread(fileName_Part1, sizeof(uint8_t) * 10, 1, file);
 
     fseek(file, pos + sizeof(uint8_t) * 13, SEEK_SET);
     fread(fileName_Part2, sizeof(uint8_t) * 12, 1, file);
+    fseek(file, pos + sizeof(uint8_t) * 27, SEEK_SET);
     fread(fileName_Part3, sizeof(uint8_t) * 4, 1, file);
 
-    for (i = 0; i < 26; i++) {
+    for (i = 0; i < 13; i++) {
 
-        if (i < 10) {
-            out.fileName[i] = fileName_Part1[i];
-        } else if (i > 9 && i < 22) {
-            out.fileName[i] = fileName_Part1[i - 10];
+        if (j < 10) {
+            out.fileName[i] = fileName_Part1[j];
+        } else if (j >= 10 && j < 22) {
+            out.fileName[i] = fileName_Part2[j - 9];
         } else {
-            out.fileName[i] = fileName_Part1[i - 22];
+            out.fileName[i] = fileName_Part3[j - 21];
         }
+        j += 2;
     }
-
+    //printf("Order: %d A part is: %s\n", out.seqNumber, out.fileName);
     return out;
 }
 
@@ -143,9 +146,9 @@ clusterData readCluster(FILE *file, uint64_t pos) {
 }
 
 
-int searchDeepFile(FILE * file, uint32_t cluster, fat32 info, char * fileToFind, clusterData * result) {
-
-    int i, j, found, long_name_counter, size;
+int searchDeepFile(FILE * file, uint32_t cluster, fat32 info, char * fileToFind, clusterData * result, int treeMargin) {
+    int PRINTTREE = 1;
+    int i, j, k, found, long_name_counter, size;
     clusterData dir;
     lfn * long_file_names;
 
@@ -160,7 +163,7 @@ int searchDeepFile(FILE * file, uint32_t cluster, fat32 info, char * fileToFind,
                               + info.sectorSize * info.numberOfSectorsPerFat * info.numberOfFats  //ens saltem els fats
                               + info.sectorSize * (cluster - 2) * info.sectorPerCluster; // ens situem al cluster
 
-        printf("Clusterpos: %"PRIu64"d", clusterPos);
+        //printf("Clusterpos: %"PRIu64"d", clusterPos);
 
         //per passar la primera volta del bucle
         dir.name[0] = 1;
@@ -170,50 +173,38 @@ int searchDeepFile(FILE * file, uint32_t cluster, fat32 info, char * fileToFind,
 
             //llegim la informació del cluster
             dir = readCluster(file, clusterPos);
-            showCluster(dir);
+            //showCluster(dir);
 
-            if ((dir.attributs & 0x10) != 0) {
-                //si es tracta d'un directori
 
-                if (strcmp(dir.name, ".          ") != 0 && strcmp(dir.name, "..         ") != 0 &&(dir.name[0] != '.')) {
-                    //si el directori no es dot o dotdot entrem a exploral recursivament
-
-                    printf("ENTROOOO -------");
-                    found = searchDeepFile(file, dir.nextCluster, info, fileToFind, result);
-                    printf("SURTOOO -------");
-                }
-
-                if (found) {
-                    return found;
-                }
-
-            }
 
             if (dir.attributs == 0x0F) {
                 //Es tracta d'un cluster amb info de long file name
-                printf("long file name\n");
+
                 long_file_names[long_name_counter++] = readLongFileName(file, clusterPos);
                 long_file_names = realloc(long_file_names, sizeof(lfn) * (long_name_counter + 1));
 
             } else if ((unsigned char) dir.name[0] != 0 && (unsigned char) dir.name[0] != 0xE5) {
                 //sino si no em arribat al final i el cluster no esta en desus
-                printf("We got");
+
 
                 if (long_name_counter) {
                     //si venim d'explorar clusters amb info de long file names
-                    printf("4");
 
-                    char * file_name = malloc(sizeof(char) * 13 * long_name_counter);
+                    char * file_name = malloc(sizeof(char) * 13 * size);;
+                    concatLFN(file_name, long_file_names, long_name_counter);
 
-                    //ajuntem el contingut dels long file names per formar el nom de l'arxiu
-                    for (j = 0; j < long_name_counter; j++) {
-                        strcpy(file_name + j * 13, long_file_names[j].fileName);
+                    if (PRINTTREE) {
+                        for (k = 0; k < treeMargin; ++k) {
+                            printf("  ");
+                        }
+                        printf("|_");
+                        printf("%s\n", file_name);
                     }
 
-                    printf("with long file name: %s\n", file_name);
+                    //printf("with long file name: %s\n", file_name);
 
                     if (strcmp(file_name, fileToFind) == 0) {
-                        printf("I found the fucking file");
+                        //printf("I found the fucking file");
                         found = 1;
                         return found;
                     }
@@ -224,11 +215,24 @@ int searchDeepFile(FILE * file, uint32_t cluster, fat32 info, char * fileToFind,
                     long_file_names = malloc(sizeof(lfn));
                 }
 
-                if (strcmp(dir.name, fileToFind) == 0) {
-                    printf("I found the fucking file");
-                    found = 1;
-                    return found;
+
+                if ((dir.attributs & 0x10) != 0) {
+                    //si es tracta d'un directori
+
+                    if (strcmp(dir.name, ".          ") != 0 && strcmp(dir.name, "..         ") != 0 &&(dir.name[0] != '.')) {
+                        //si el directori no es dot o dotdot entrem a exploral recursivament
+
+
+                        found = searchDeepFile(file, dir.nextCluster, info, fileToFind, result, ++treeMargin);
+                        treeMargin--;
+                    }
+
+                    if (found) {
+                        return found;
+                    }
+
                 }
+
 
             }
 
@@ -251,13 +255,28 @@ int searchDeepFile(FILE * file, uint32_t cluster, fat32 info, char * fileToFind,
     return 0; //not found
 }
 
+void concatLFN(char *name, lfn *pName, int size) {
+    int i;
+
+    for (i = 0; i < size/2; ++i)
+    {
+        lfn temp = pName[i];
+        pName[i] = pName[size - 1 - i];
+        pName[size - 1 - i] = temp;
+    }
+    for (i = 0; i < size; i++) {
+       stpcpy(name + i * 13, pName[i].fileName);
+    }
+
+}
+
 
 void searchFat32(FILE * file, char * fileToFind, int operation) {
     //llegim la info del volum
     fat32 info = readFat32(file);
     clusterData result;
 
-    int what = searchDeepFile(file, info.rootFirstCluster, info, fileToFind, &result);
+    int what = searchDeepFile(file, info.rootFirstCluster, info, fileToFind, &result, 0);
 
     printf("what: %d", what);
 
