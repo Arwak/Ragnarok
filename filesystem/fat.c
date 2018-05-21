@@ -7,7 +7,12 @@
 #include <stdlib.h>
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
+#include <time.h>
 #include "fat.h"
+
+#define SEARCH                          1
+#define DEEP                            2
+#define PRINTTREE                       0
 
 //https://www.codeguru.com/cpp/cpp/cpp_mfc/files/article.php/c13907/Long-File-Name-LFN-Entries-in-the-FAT-Root-Directory-of-Floppy-Disks.htm#page-2
 
@@ -113,11 +118,10 @@ fat32 readFat32(FILE *file) {
     fread(&fat.label, sizeof(char) * 8, 1, file);
     fat.label[8] = 0;
 
-    showFat(fat);
     return fat;
 }
 
-clusterData readCluster(FILE *file, uint64_t pos) {
+clusterData readCluster(FILE *file, uint32_t pos) {
     clusterData cluster;
     uint16_t low;
     uint32_t high;
@@ -145,11 +149,9 @@ clusterData readCluster(FILE *file, uint64_t pos) {
     return cluster;
 }
 
-
-int searchDeepFile(FILE * file, uint32_t cluster, fat32 info, char * fileToFind, clusterData * result, int treeMargin) {
-    int PRINTTREE = 1;
+int searchFile(FILE * file, uint32_t cluster, fat32 info, char * fileToFind, clusterData * result) {
     int i, j, k, found, long_name_counter, size;
-    clusterData dir;
+    clusterData clusterInfo;
     lfn * long_file_names;
 
     size = info.sectorSize * info.sectorPerCluster / 32;
@@ -159,31 +161,124 @@ int searchDeepFile(FILE * file, uint32_t cluster, fat32 info, char * fileToFind,
     do {
 
         //ens situem al cluster
-        uint64_t clusterPos = info.sectorSize * info.reservedSectors //ens saltem els reservedblocs
+        uint32_t clusterPos = info.sectorSize * info.reservedSectors //ens saltem els reservedblocs
                               + info.sectorSize * info.numberOfSectorsPerFat * info.numberOfFats  //ens saltem els fats
                               + info.sectorSize * (cluster - 2) * info.sectorPerCluster; // ens situem al cluster
 
         //printf("Clusterpos: %"PRIu64"d", clusterPos);
 
         //per passar la primera volta del bucle
-        dir.name[0] = 1;
+        clusterInfo.name[0] = 1;
 
-        for (i = 0; i < size && dir.name[0] != 0; i++) {
+        for (i = 0; i < size && clusterInfo.name[0] != 0; i++) {
 
 
             //llegim la informació del cluster
-            dir = readCluster(file, clusterPos);
+            clusterInfo = readCluster(file, clusterPos);
             //showCluster(dir);
 
 
 
-            if (dir.attributs == 0x0F) {
+            if (clusterInfo.attributs == 0x0F) {
                 //Es tracta d'un cluster amb info de long file name
 
                 long_file_names[long_name_counter++] = readLongFileName(file, clusterPos);
                 long_file_names = realloc(long_file_names, sizeof(lfn) * (long_name_counter + 1));
 
-            } else if ((unsigned char) dir.name[0] != 0 && (unsigned char) dir.name[0] != 0xE5) {
+            } else if ((unsigned char) clusterInfo.name[0] != 0 && (unsigned char) clusterInfo.name[0] != 0xE5) {
+                //sino si no em arribat al final i el cluster no esta en desus
+
+
+                if (long_name_counter) {
+                    //si venim d'explorar clusters amb info de long file names
+
+                    char * file_name = malloc(sizeof(char) * 13 * size);;
+                    concatLFN(file_name, long_file_names, long_name_counter);
+
+                    //printf("with long file name: %s\n", file_name);
+
+                    if (strcmp(file_name, fileToFind) == 0) {
+                        //printf("I found the fucking file");
+                        found = 1;
+                        *result = clusterInfo;
+                        return found;
+                    }
+
+                    //resetejem per la següent busqueda
+                    long_name_counter = 0;
+                    free(long_file_names);
+                    long_file_names = malloc(sizeof(lfn));
+                }
+
+
+                if ((clusterInfo.attributs & 0x10) != 0) {
+                    //si es tracta d'un directori
+
+                    //com que no es deepsearch no entrem a directoris
+
+
+                }
+
+
+            }
+
+            //avançem per la cadena actual de clusters
+            clusterPos += 32;
+        }
+        //s'ha acabat la cadena de clusters que estavem explorant
+
+        //Anem al següent cluster
+        fseek(file, info.sectorSize * info.reservedSectors + sizeof(uint32_t) * cluster, SEEK_SET);
+        fread(&cluster, sizeof(uint32_t), 1, file);
+
+        //eliminem el unused bits 32bits -> 28bits
+        cluster = cluster & 0x0FFFFFFF;
+
+        //Fins que estigui corrupte 0x0FFFFFF7, o hagi el limit
+    } while (cluster < 0x0FFFFFF7);
+
+
+    return 0; //not found
+}
+
+
+int searchDeepFile(FILE * file, uint32_t cluster, fat32 info, char * fileToFind, clusterData * result, int treeMargin) {
+    int i, j, k, found, long_name_counter, size;
+    clusterData clusterInfo;
+    lfn * long_file_names;
+
+    size = info.sectorSize * info.sectorPerCluster / 32;
+    found = long_name_counter = 0;
+    long_file_names = malloc(sizeof(lfn));
+
+    do {
+
+        //ens situem al cluster
+        uint32_t clusterPos = info.sectorSize * info.reservedSectors //ens saltem els reservedblocs
+                              + info.sectorSize * info.numberOfSectorsPerFat * info.numberOfFats  //ens saltem els fats
+                              + info.sectorSize * (cluster - 2) * info.sectorPerCluster; // ens situem al cluster
+
+        //printf("Clusterpos: %"PRIu64"d", clusterPos);
+
+        //per passar la primera volta del bucle
+        clusterInfo.name[0] = 1;
+
+        for (i = 0; i < size && clusterInfo.name[0] != 0; i++) {
+
+
+            //llegim la informació del cluster
+            clusterInfo = readCluster(file, clusterPos);
+            //showCluster(dir);
+
+
+
+            if (clusterInfo.attributs == 0x0F) {
+                //Es tracta d'un cluster amb info de long file name
+
+                long_file_names[long_name_counter++] = readLongFileName(file, clusterPos);
+                long_file_names = realloc(long_file_names, sizeof(lfn) * (long_name_counter + 1));
+
+            } else if ((unsigned char) clusterInfo.name[0] != 0 && (unsigned char) clusterInfo.name[0] != 0xE5) {
                 //sino si no em arribat al final i el cluster no esta en desus
 
 
@@ -195,7 +290,7 @@ int searchDeepFile(FILE * file, uint32_t cluster, fat32 info, char * fileToFind,
 
                     if (PRINTTREE) {
                         for (k = 0; k < treeMargin; ++k) {
-                            printf("  ");
+                            printf("\t");
                         }
                         printf("|_");
                         printf("%s\n", file_name);
@@ -206,6 +301,7 @@ int searchDeepFile(FILE * file, uint32_t cluster, fat32 info, char * fileToFind,
                     if (strcmp(file_name, fileToFind) == 0) {
                         //printf("I found the fucking file");
                         found = 1;
+                        *result = clusterInfo;
                         return found;
                     }
 
@@ -216,14 +312,14 @@ int searchDeepFile(FILE * file, uint32_t cluster, fat32 info, char * fileToFind,
                 }
 
 
-                if ((dir.attributs & 0x10) != 0) {
+                if ((clusterInfo.attributs & 0x10) != 0) {
                     //si es tracta d'un directori
 
-                    if (strcmp(dir.name, ".          ") != 0 && strcmp(dir.name, "..         ") != 0 &&(dir.name[0] != '.')) {
+                    if (strcmp(clusterInfo.name, ".          ") != 0 && strcmp(clusterInfo.name, "..         ") != 0 &&(clusterInfo.name[0] != '.')) {
                         //si el directori no es dot o dotdot entrem a exploral recursivament
 
 
-                        found = searchDeepFile(file, dir.nextCluster, info, fileToFind, result, ++treeMargin);
+                        found = searchDeepFile(file, clusterInfo.nextCluster, info, fileToFind, result, ++treeMargin);
                         treeMargin--;
                     }
 
@@ -273,12 +369,32 @@ void concatLFN(char *name, lfn *pName, int size) {
 
 void searchFat32(FILE * file, char * fileToFind, int operation) {
     //llegim la info del volum
-    fat32 info = readFat32(file);
+    int what = 0;
     clusterData result;
+    fat32 info;
 
-    int what = searchDeepFile(file, info.rootFirstCluster, info, fileToFind, &result, 0);
+    info = readFat32(file);
 
-    printf("what: %d", what);
+    switch (operation) {
+        case SEARCH:
+            what = searchFile(file, info.rootFirstCluster, info, fileToFind, &result);
+            break;
+        case DEEP:
+            what = searchDeepFile(file, info.rootFirstCluster, info, fileToFind, &result, 0);
+            break;
+        default:
+            perror("Undefined operation code.\n");
+            return;
+    }
+
+    if (what) {
+
+        printf("\nFile found! Size: %"PRIu32" bytes. Created at: %.2d/%.2d/%d \n", result.size, (result.date & 0x1F), ((result.date & 0x1E0) >> 5), 1980 + ((result.date & 0xFE00) >> 9));
+
+    } else {
+        printf("Error. File not found.");
+    }
+
 
 
 }
