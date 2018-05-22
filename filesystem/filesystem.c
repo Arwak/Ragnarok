@@ -1,10 +1,15 @@
-//
-// Created by Clàudia Peiró Vidal on 13/4/18.
-
-// 1 Files in this filesystem use extents (INCOMPAT_EXTENTS). --> ext4
-// 1 Has a journal (COMPAT_HAS_JOURNAL). --> ext3
-// 0 Has a journal (COMPAT_HAS_JOURNAL). --> ext2
-//
+/**
+ * Sistemes Operatius Avançats - Ragnarok
+ *
+ * Modul-> FILESYSTEM.c
+ *
+ *
+ * In this file you will find all the functionalities about the
+ * differentiation between ext and fat.
+ *
+ * Authors: Xavier Roma Castells            xavier.roma.2015
+ *          Clàudia Peiró i Vidal           claudia.peiro.2015
+ */
 
 
 #include "filesystem.h"
@@ -30,8 +35,17 @@
 #define DEEP                            2
 #define SHOW                            3
 
-
-void chooseExt (FILE* file, char * pathToFile, int operation) {
+/**
+ * chooseExt
+ * ------------------------------------
+ *
+ * Will determine type of ext of the volume.
+ * @param file
+ * @param pathToFile
+ * @param date
+ * @param operation
+ */
+void chooseExt (FILE* file, char * pathToFile, char * date, int operation) {
     unsigned long extents;
     long aux;
 
@@ -46,19 +60,19 @@ void chooseExt (FILE* file, char * pathToFile, int operation) {
                 break;
 
             case SEARCH:
-                searchExt4(file, pathToFile, SEARCH);
+                searchExt4(file, pathToFile, "0", SEARCH);
                 break;
             case DEEP:
-                searchExt4(file, pathToFile, DEEP);
+                searchExt4(file, pathToFile, "0", DEEP);
                 break;
             case SHOW:
-                searchExt4(file, pathToFile, SHOW);
+                searchExt4(file, pathToFile, "0", SHOW);
                 break;
             case READ_CODE:
-                searchExt4(file, pathToFile, READ_CODE);
+                searchExt4(file, pathToFile, "0", READ_CODE);
                 break;
             case WRITE_CODE:
-                searchExt4(file, pathToFile, WRITE_CODE);
+                searchExt4(file, pathToFile, "0", WRITE_CODE);
                 break;
             case HIDE_CODE:
                 printf("This operation is not valid with this type of volume\n");
@@ -67,7 +81,7 @@ void chooseExt (FILE* file, char * pathToFile, int operation) {
                 printf("This operation is not valid with this type of volume\n");
                 break;
             case DATE_CODE:
-                searchExt4(file, pathToFile, DATE_CODE);
+                searchExt4(file, pathToFile, date, DATE_CODE);
                 break;
 
         }
@@ -86,14 +100,24 @@ void chooseExt (FILE* file, char * pathToFile, int operation) {
     }
 }
 
-void chooseFilesystem (char * pathFile, char * pathFileToFind, int operation) {
+/**
+ * chooseFilesystem
+ * ------------------------------------
+ *
+ * Will determine type of the volume.
+ * @param pathFile
+ * @param pathFileToFind
+ * @param date
+ * @param operation
+ */
+void chooseFilesystem (char * pathFile, char * pathFileToFind, char * date, int operation) {
     FILE* file;
 
     unsigned short magicSignature;
     unsigned short upperOffset;
 
 
-    file = fopen(pathFile, "rb");
+    file = fopen(pathFile, "rb+");
 
     if (file == NULL) {
         printf(MSG_ERR_FITXER);
@@ -104,7 +128,7 @@ void chooseFilesystem (char * pathFile, char * pathFileToFind, int operation) {
         fread(&magicSignature, sizeof(magicSignature), 1, file);
 
         if (magicSignature == EXT_MAGIC_SEQUENCE) {             //it will be a ext
-            chooseExt(file, pathFileToFind, operation);
+            chooseExt(file, pathFileToFind, date, operation);
         } else {
 
             //Possible fat

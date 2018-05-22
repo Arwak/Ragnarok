@@ -1,6 +1,14 @@
-//
-// Created by Clàudia Peiró Vidal on 13/4/18.
-//
+/**
+ * Sistemes Operatius Avançats - Ragnarok
+ *
+ * Modul-> EXT.c
+ *
+ *
+ * In this file you will find all the functionalities about ext4
+ *
+ * Authors: Xavier Roma Castells            xavier.roma.2015
+ *          Clàudia Peiró i Vidal           claudia.peiro.2015
+ */
 
 
 #include <math.h>
@@ -17,10 +25,17 @@
 #define SEARCH_OPERATION 1
 #define SHOW 3
 
-#define FILE_NOT_FOUND "Error. File not found.\n"
+#define FILE_NOT_FOUND "\n\nError. File not found.\n"
 
 FILE * file;
 
+/**
+ * showExt
+ * ------------------------------------
+ *
+ * Implements command -info
+ * @param ext to be shown
+ */
 void showExt(ext4 ext) {
     printf("---- Filesystem Information ----\n\n");
 
@@ -57,6 +72,14 @@ void showExt(ext4 ext) {
 
 }
 
+
+/**
+ * readExt4
+ * ------------------------------------
+ *
+ * Will read the volume and will fill the structure about ext.
+ * Will be useful to get information about volume type ext4.
+ */
 ext4 readExt4(FILE *file) {
     ext4 ext;
 
@@ -116,6 +139,45 @@ ext4 readExt4(FILE *file) {
     return ext;
 }
 
+
+/**
+ * showContentofFile
+ * ------------------------------------
+ *
+ * Will implement the command -show. It will show the content of a file.
+ *
+ * @param offset from where the content will start
+ * @param ee_len maximim content to read
+ */
+void showContentofFile(__uint64_t offset, __uint64_t ee_len) {
+
+    char c = 0;
+    __uint64_t i = 0;
+
+    printf("\n\nFile Found! Showing content...\n");
+
+    fseek(file, offset, SEEK_SET);
+
+    for (i = 0; i < ee_len; i++) {
+        fread(&c, sizeof(char), 1, file);
+        if(c == '\0')break;
+        printf("%c", c);
+
+    }
+
+}
+
+/**
+ * getPosInodeTable
+ * ------------------------------------
+ *
+ * Will get the position of the Inode table. Will read from the
+ * group descriptor.
+ *
+ *
+ * @param ext4Info will be filled with the position of the inode table
+ * @param posGroupDescrip from where the position will be read
+ */
 void getPosInodeTable (ext4 *ext4Info, int posGroupDescrip) {
     __uint32_t posLowInodeTable;
     __uint32_t posHighInodeTable;
@@ -131,26 +193,17 @@ void getPosInodeTable (ext4 *ext4Info, int posGroupDescrip) {
     ext4Info->posInodeTable = (__uint64_t)posHighInodeTable << 32 | posLowInodeTable;
 }
 
-void showContentofFile(uint64_t offset, __uint64_t ee_len) {
-
-    char c = 0;
-    __uint64_t i = 0;
-
-    printf("File Found! Showing content...\n");
-
-    fseek(file, offset, SEEK_SET);
-
-    for (i = 0; i < ee_len; i++) {
-        fread(&c, sizeof(char), 1, file);
-        printf("%c", c);
-        if(c == '\0')break;
-    }
-
-
-
-}
-
-void findStartOfFile (__uint32_t inode, ext4 ext4Info, __uint64_t posicioReal, int i) {
+/**
+ * findStartOfFile
+ * ------------------------------------
+ *
+ * Will be helpful for the command -show. Will find the start of the data block.
+ * It will also ensure that all the data will be read.
+ *
+ * @param ext4Info
+ * @param posicioReal
+ */
+void findStartOfFile (ext4 ext4Info, __uint64_t posicioReal) {
 
     __uint16_t start_hi, depth, entries, ee_len = 0;
     __uint32_t start_lo;
@@ -206,12 +259,22 @@ void findStartOfFile (__uint32_t inode, ext4 ext4Info, __uint64_t posicioReal, i
 
         offset = posicioBlock * ext4Info.blockSize;
 
-        findStartOfFile(inode, ext4Info, offset, i);
+        findStartOfFile(ext4Info, offset);
 
     }
 
 }
 
+
+/**
+ * fileFoundInformation
+ * ------------------------------------
+ *
+ * Will show the size and date of creation of a file. It will be useful for
+ * command -search and -deepsearch
+ *
+ * @param offset
+ */
 void fileFoundInformation(__uint64_t offset) {
 
     __uint32_t var32, lowVar32, upperVar32;
@@ -232,9 +295,96 @@ void fileFoundInformation(__uint64_t offset) {
     char buff[100];
 
     strftime(buff, 100, "%d-%m-%Y", localtime(&ts));
-    printf("File Found! Size: %lli Created on: %s\n", size, buff);
+    printf("\n\nFile Found! Size: %ld Created on: %s\n", size, buff);
 }
 
+
+/**
+ * showPermissos
+ * ------------------------------------
+ *
+ * Will show the permissions of the file. It will be useful for the commands of fase 5.
+ *
+ * @param offset
+ */
+void showPermissos (__uint64_t offset) {
+    char read = 'r';
+    char write = 'w';
+    char execute = 'x';
+
+    __uint16_t comprovacio;
+
+    fseek(file, offset, SEEK_SET);
+    fread(&comprovacio, sizeof(comprovacio), 1, file);
+
+
+    if (comprovacio & 0x01) {
+        printf("%c", execute);
+    } else {
+        printf("-");
+    }
+
+    if (comprovacio & 0x02) {
+        printf("%c", write);
+    } else {
+        printf("-");
+    }
+
+    if (comprovacio & 0x04) {
+        printf("%c", read);
+    } else {
+        printf("-");
+    }
+
+    if (comprovacio & 0x08) {
+        printf("%c", execute);
+    } else {
+        printf("-");
+    }
+
+    if (comprovacio & 0x10) {
+        printf("%c", write);
+    } else {
+        printf("-");
+    }
+
+    if (comprovacio & 0x20) {
+        printf("%c", read);
+    } else {
+        printf("-");
+    }
+
+    if (comprovacio & 0x40) {
+        printf("%c", execute);
+    } else {
+        printf("-");
+    }
+
+    if (comprovacio & 0x80) {
+        printf("%c", write);
+    } else {
+        printf("-");
+    }
+
+    if (comprovacio & 0x100) {
+        printf("%c\n", read);
+    } else {
+        printf("-\n");
+    }
+
+
+
+}
+
+
+/**
+ * changeRead
+ * ------------------------------------
+ *
+ * Will implement the command -r. Will give read permissions to the file.
+ *
+ * @param offset
+ */
 void changeRead(__uint64_t offset){
 
     __uint16_t permisos;
@@ -242,12 +392,27 @@ void changeRead(__uint64_t offset){
     fseek(file, offset, SEEK_SET);
     fread(&permisos, sizeof(permisos), 1, file);
 
-    permisos |= 0xDC;
+    printf("Permissions before modifications: ");
+    showPermissos(offset);
 
-    printf("Permissos %u\n", permisos);
+    permisos |= 0x124;
+
+    fseek(file, offset, SEEK_SET);
+    fwrite(&permisos, sizeof(permisos), 1, file);
+
+    printf("Permissions after modifications: ");
+    showPermissos(offset);
 
 }
 
+
+/**
+ * changeReadOff
+ * ------------------------------------
+ *
+ * Will implement the command -w. Will remove read permissions from the file.
+ * @param offset
+ */
 void changeReadOff(__uint64_t offset){
 
     __uint16_t permisos;
@@ -255,14 +420,123 @@ void changeReadOff(__uint64_t offset){
     fseek(file, offset, SEEK_SET);
     fread(&permisos, sizeof(permisos), 1, file);
 
-    permisos &= 0xFEDC;
+    printf("Permits before modifications: ");
+    showPermissos(offset);
 
+    permisos &= 0xFEDB;
 
-    printf("Permissos %u\n", permisos);
+    fseek(file, offset, SEEK_SET);
+    fwrite(&permisos, sizeof(permisos), 1, file);
+
+    printf("Permits after modifications: ");
+    showPermissos(offset);
 
 }
 
-void exploreExtentTree (char * fileToFind, ext4 ext4Info, __uint32_t inode, int *found, int operation) {
+
+/**
+ * checkDate
+ * ------------------------------------
+ *
+ * Will check if the introduced date is valid or not.
+ *
+ * @param y year
+ * @param d day
+ * @param m month
+ * @return 1 if is correct. 0 otherwise.
+ */
+int checkDate(int y, int d, int m){
+
+    int daysinmonth[12]={31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    int legit = 0;
+
+    // leap year checking, if ok add 29 days to february
+    if(y % 400 == 0 || (y % 100 != 0 && y % 4 == 0))
+        daysinmonth[1]=29;
+
+    // days in month checking
+    if (m<13)
+    {
+        if( d <= daysinmonth[m-1] )
+            legit=1;
+    }
+
+    return legit;
+}
+
+
+/**
+ * changeCreationTime
+ * ------------------------------------
+ *
+ * Will implement the command -d. Will change the creation date of the file.
+ * @param offset
+ * @param date
+ */
+void changeCreationTime(__uint64_t offset, char * date) {
+    char year[5];
+    char day[3];
+    char month[3];
+
+    int i = 0;
+
+    for (i = 0; i < 2; i++) {
+        day[i] = date[i];
+    }
+    day[i] = '\0';
+
+    int a = 0;
+    for (i = 2; i < 4; i++) {
+        month[a] = date[i];
+        a++;
+    }
+    month[a] = '\0';
+
+    a = 0;
+    for (i = 4; i < 8; i++) {
+        year[a] = date[i];
+        a++;
+    }
+    year[a] = '\0';
+
+    if(checkDate(atoi(year), atoi(day), atoi(month))) {
+        struct tm t;
+        time_t t_of_day = 0;
+        memset(&t, 0, sizeof(struct tm));
+
+        t.tm_year = atoi(year)-1900;
+        t.tm_mon = atoi(month) -1;       // Month, 0 - jan
+        t.tm_mday = atoi(day);          // Day of the month
+        t_of_day = mktime(&t);
+
+        fseek(file, (long) offset + 0x90, SEEK_SET);
+        fwrite(&t_of_day, sizeof(t_of_day), 1, file);
+
+        printf("\n\nNew creation date saved: %d-%d-%d\n", atoi(day), atoi(month), atoi(year));
+
+    } else {
+        printf("\n\nDate not valid!\n");
+    }
+
+
+}
+
+
+/**
+ * exploreExtentTree
+ * ------------------------------------
+ *
+ * Will implement the -deepsearch command. It will be useful for all the other commands
+ * in order to find the position of the inode of the searched file.
+ *
+ * @param fileToFind
+ * @param ext4Info
+ * @param inode
+ * @param found
+ * @param date
+ * @param operation
+ */
+void exploreExtentTree (char * fileToFind, ext4 ext4Info, __uint32_t inode, int *found, char * date, int operation) {
 
 
     __uint16_t inodeSize = ext4Info.inode.inodeSize;
@@ -360,20 +634,21 @@ void exploreExtentTree (char * fileToFind, ext4 ext4Info, __uint32_t inode, int 
                                         break;
                                     case SHOW:
                                         posicioBlock += EXTENT_TREE;
-                                        int a = 0;
-                                        findStartOfFile(nextInode, ext4Info, posicioBlock, a);
+                                        findStartOfFile(ext4Info, posicioBlock);
 
                                         break;
                                     case READ_CODE:
+                                        printf("\nChanging read permits - Read on\n");
                                         changeRead(posicioBlock);
 
                                         break;
                                     case WRITE_CODE:
-                                        fileFoundInformation(posicioBlock);
+                                        printf("\nChanging read permits - Read off\n");
+                                        changeReadOff(posicioBlock);
 
                                         break;
                                     case DATE_CODE:
-                                        fileFoundInformation(posicioBlock);
+                                        changeCreationTime(posicioBlock, date);
 
                                         break;
                                 }
@@ -385,14 +660,10 @@ void exploreExtentTree (char * fileToFind, ext4 ext4Info, __uint32_t inode, int 
 
                         case 2:
                             printf("Directory found: %s\n", fileName);
-                            exploreExtentTree(fileToFind, ext4Info, nextInode, found, operation);
+                            exploreExtentTree(fileToFind, ext4Info, nextInode, found, date,operation);
 
                             break;
 
-                        default:
-                            printf("Default %u\n", directoryInformation);
-
-                            break;
                     }
 
                     offset += rec_len;
@@ -410,12 +681,24 @@ void exploreExtentTree (char * fileToFind, ext4 ext4Info, __uint32_t inode, int 
             fseek(file, (long)posicioReal + HEADER_SIZE + 0x8, SEEK_SET);
             fread(&start_lo, sizeof(start_lo), 1, file);
 
-            offset = (__uint64_t) start_hi << 32 | start_lo;
+            posicioReal = (__uint64_t) start_hi << 32 | start_lo;
         }
 
     }
 }
 
+
+/**
+ * exploreExtentTree
+ * ------------------------------------
+ *
+ * Will implement the -search command. Same as exploreExtentTree but it will not go
+ * inside the directories.  Will perfom the search in the root file.
+ *
+ * @param fileToFind
+ * @param ext4Info
+ * @param found
+ */
 void exploreExtentTreeDirectori (char * fileToFind, ext4 ext4Info, int *found){
 
 
@@ -467,8 +750,6 @@ void exploreExtentTreeDirectori (char * fileToFind, ext4 ext4Info, int *found){
 
             while (offset <= directoryEnd + 1 && !(*found)) {
 
-                printf("Entro amb offset %llu, %llu\n", offset, directoryEnd);
-
                 //Next Inode
                 fseek(file, (long)offset, SEEK_SET);
                 fread(&nextInode, sizeof(nextInode), 1, file);
@@ -489,8 +770,6 @@ void exploreExtentTreeDirectori (char * fileToFind, ext4 ext4Info, int *found){
 
                     fseek(file, (long)offset + 0x4, SEEK_SET);
                     fread(&rec_len, sizeof(rec_len), 1, file);
-
-                    printf("File %s\n", fileName);
 
                     if (strcmp(fileName, ".") == 0 || strcmp(fileName, "..") == 0) {
                         //Saltem . i ..
@@ -526,8 +805,6 @@ void exploreExtentTreeDirectori (char * fileToFind, ext4 ext4Info, int *found){
 
                     offset += rec_len;
 
-                    printf("Offset %llu, dire %llu\n", offset, directoryEnd);
-
                 } else {
                     break;
                 }
@@ -541,7 +818,7 @@ void exploreExtentTreeDirectori (char * fileToFind, ext4 ext4Info, int *found){
             fseek(file, (long)posicioReal + HEADER_SIZE + 0x8, SEEK_SET);
             fread(&start_lo, sizeof(start_lo), 1, file);
 
-            offset = (__uint64_t) start_hi << 32 | start_lo;
+            posicioReal = (__uint64_t) start_hi << 32 | start_lo;
         }
 
     }
@@ -552,10 +829,15 @@ void exploreExtentTreeDirectori (char * fileToFind, ext4 ext4Info, int *found){
 }
 
 /**
- * Primer haurem de buscar els group descriptors
+ * searchExt4
+ * ------------------------------------
+ *
+ * Will prepare the search procedure. It will get the position of the inode table.
+ * It will also decide which search realize depending on the operation given.
+ *
  * @param file
  */
-void searchExt4(FILE * files, char * fileToFind, int operation) {
+void searchExt4(FILE * files, char * fileToFind, char * date ,int operation) {
     int posGroupDescrip;
 
     file = files;
@@ -574,7 +856,7 @@ void searchExt4(FILE * files, char * fileToFind, int operation) {
         exploreExtentTreeDirectori(fileToFind, ext4Info, &found);
 
     } else {
-        exploreExtentTree(fileToFind, ext4Info, 2, &found, operation);
+        exploreExtentTree(fileToFind, ext4Info, 2, &found, date, operation);
 
     }
 
