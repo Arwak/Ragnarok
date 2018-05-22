@@ -279,10 +279,10 @@ void printFile (FILE * file, fat32 info, clusterData fileCluster) {
 
             //Anem a la fat a buscar el següent cluster
             fseek(file, info.sectorSize * info.reservedSectors + sizeof(uint32_t) * cluster, SEEK_SET);
-            fread(&cluster, sizeof(uint32_t), 1, file);
+            fread(&next_cluster, sizeof(uint32_t), 1, file);
 
             //eliminem el unused bits 32bits -> 28bits
-            cluster = cluster & 0x0FFFFFFF;
+            next_cluster = next_cluster & 0x0FFFFFFF;
 
             if (next_cluster >= 0xFFFFFF7)
                 break;
@@ -290,7 +290,7 @@ void printFile (FILE * file, fat32 info, clusterData fileCluster) {
             //ens situem al cluster
             clusterPos = info.sectorSize * info.reservedSectors //ens saltem els reservedblocs
                                   + info.sectorSize * info.numberOfSectorsPerFat * info.numberOfFats  //ens saltem els fats
-                                  + info.sectorSize * (cluster - 2) * info.sectorPerCluster; // ens situem al cluster
+                                  + info.sectorSize * (next_cluster - 2) * info.sectorPerCluster; // ens situem al cluster
 
 
             fseek(file, clusterPos, SEEK_SET);
