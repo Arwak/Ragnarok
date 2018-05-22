@@ -154,28 +154,20 @@ void chooseFilesystem (char * pathFile, char * pathFileToFind, char * date, int 
                                 showFat(readFat32(file));
                                 break;
                             case SEARCH:
-                                searchFat32(file, pathFileToFind, SEARCH);
-                                break;
                             case DEEP:
-                                searchFat32(file, pathFileToFind, DEEP);
+                                searchFat32(file, pathFileToFind, operation);
                                 break;
                             case SHOW:
                                 showFile(file, pathFileToFind);
                                 break;
                             case READ_CODE:
-
-                                break;
                             case WRITE_CODE:
-
-                                break;
                             case HIDE_CODE:
-
-                                break;
                             case SHIDE_CODE:
-
+                                changeAttributes(file, pathFileToFind, operation);
                                 break;
                             case DATE_CODE:
-
+                                changeFileDate(file, pathFileToFind, date);
                                 break;
                         }
 

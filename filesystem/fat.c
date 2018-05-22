@@ -488,3 +488,212 @@ void showFile(FILE * file, char * fileToShow) {
     }
 
 }
+
+int searchFilePos(FILE * file, uint32_t cluster, fat32 info, char * fileToFind, uint32_t * file_position) {
+    int i, j, k, found, long_name_counter, size;
+    clusterData clusterInfo;
+    lfn * long_file_names;
+
+    size = info.sectorSize * info.sectorPerCluster / 32;
+    found = long_name_counter = 0;
+    long_file_names = malloc(sizeof(lfn));
+
+    do {
+        //printf("CLUSTER %x \n", cluster);
+        //ens situem al cluster
+        uint32_t clusterPos = info.sectorSize * info.reservedSectors //ens saltem els reservedblocs
+                              + info.sectorSize * info.numberOfSectorsPerFat * info.numberOfFats  //ens saltem els fats
+                              + info.sectorSize * (cluster - 2) * info.sectorPerCluster; // ens situem al cluster
+
+        //per passar la primera volta del bucle
+        clusterInfo.name[0] = 1;
+
+        for (i = 0; i < size && clusterInfo.name[0] != 0; i++) {
+
+
+            //llegim la informació del cluster
+            clusterInfo = readCluster(file, clusterPos);
+            //showCluster(clusterInfo);
+            //printf("next cluster: %x \n", clusterInfo.nextCluster);
+
+
+            if (clusterInfo.attributs == 0x0F) {
+                //Es tracta d'un cluster amb info de long file name
+
+                long_file_names[long_name_counter++] = readLongFileName(file, clusterPos);
+                long_file_names = realloc(long_file_names, sizeof(lfn) * (long_name_counter + 1));
+
+            } else if ((unsigned char) clusterInfo.name[0] != 0 && (unsigned char) clusterInfo.name[0] != 0xE5) {
+                //sino si no em arribat al final i el cluster no esta en desus
+
+
+                if (long_name_counter) {
+                    //si venim d'explorar clusters amb info de long file names
+
+                    char * file_name = malloc(sizeof(char) * 13 * size);;
+                    concatLFN(file_name, long_file_names, long_name_counter);
+
+
+
+                    //printf("with long file name: %s\n", file_name);
+
+                    if (strcmp(file_name, fileToFind) == 0) {
+                        //printf("I found the fucking file");
+
+                        fseek(file, info.sectorSize * info.reservedSectors + sizeof(uint32_t) * cluster, SEEK_SET);
+                        fread(&cluster, sizeof(uint32_t), 1, file);
+
+                        *file_position = clusterPos;
+                        //printFile(file, info, clusterInfo);
+                        return 1;
+                    }
+
+                    //resetejem per la següent busqueda
+                    long_name_counter = 0;
+                    free(long_file_names);
+                    long_file_names = malloc(sizeof(lfn));
+                } else {
+
+                    for (k = 0; k < 8; k++) {
+                        if (clusterInfo.name[k] == ' ') {
+                            clusterInfo.name[k] = '.';
+                            clusterInfo.name[++k] = clusterInfo.name[8];
+                            clusterInfo.name[++k] = clusterInfo.name[9];
+                            clusterInfo.name[++k] = clusterInfo.name[10];
+                            clusterInfo.name[++k] = '\0';
+                            break;
+                        }
+                    }
+
+                    if (strcmp(clusterInfo.name, fileToFind) == 0) {
+                        *file_position = clusterPos;
+                        //printFile(file, info, clusterInfo);
+                        return 1;
+                    }
+
+
+                }
+
+
+                if ((clusterInfo.attributs & 0x10) != 0) {
+                    //si es tracta d'un directori
+
+                    if (strcmp(clusterInfo.name, ".          ") != 0 && strcmp(clusterInfo.name, "..         ") != 0 &&(clusterInfo.name[0] != '.')) {
+                        //si el directori no es dot o dotdot entrem a exploral recursivament
+
+                        found = searchDeepFile(file, clusterInfo.nextCluster, info, fileToFind, file_position);
+
+                    }
+
+                    if (found) {
+                        return found;
+                    }
+
+                }
+
+
+            }
+
+            //avançem per la cadena actual de clusters
+            clusterPos += 32;
+        }
+        //s'ha acabat la cadena de clusters que estavem explorant
+
+        //Anem al següent cluster
+        fseek(file, info.sectorSize * info.reservedSectors + sizeof(uint32_t) * cluster, SEEK_SET);
+        fread(&cluster, sizeof(uint32_t), 1, file);
+
+        //eliminem el unused bits 32bits -> 28bits
+        cluster = cluster & 0x0FFFFFFF;
+
+        //Fins que estigui corrupte 0x0FFFFFF7, o hagi el limit
+    } while (cluster < 0x0FFFFFF7);
+
+
+    return 0; //not found
+}
+
+void changeAttributes (FILE * file, char * fileToChange, int operation) {
+
+    fat32 info;
+    uint32_t file_position;
+    uint8_t attributs;
+
+    info = readFat32(file);
+
+    if (searchFilePos(file, info.rootFirstCluster, info, fileToChange, &file_position)) {
+
+        fseek(file, file_position + ATTRIBUTES, SEEK_SET);
+        fread(&attributs, sizeof(uint8_t), 1, file);
+
+        fseek(file, file_position + ATTRIBUTES, SEEK_SET);
+
+        switch (operation) {
+
+            case READ_CODE:
+                attributs |= 0x01;
+                fwrite(&attributs, sizeof(uint8_t), 1, file);
+                printf("Se han editado los permisos de %s\n", fileToChange);
+                break;
+
+            case WRITE_CODE:
+                attributs &= 0x01;
+                fwrite(&attributs, sizeof(uint8_t), 1, file);
+                printf("Se han editado los permisos de %s\n", fileToChange);
+                break;
+
+            case HIDE_CODE:
+                attributs |= 0x02;
+                fwrite(&attributs, sizeof(uint8_t), 1, file);
+                printf("Se han editado los permisos de %s\n", fileToChange);
+                break;
+
+            case SHIDE_CODE:
+                attributs &= 0x02;
+                fwrite(&attributs, sizeof(uint8_t), 1, file);
+                printf("Se han editado los permisos de %s\n", fileToChange);
+                break;
+
+            default:
+                perror("Undefined operation code.\n");
+                break;
+        }
+
+    } else {
+
+        printf("Error: File not found.\n");
+
+    }
+
+}
+
+void changeFileDate(FILE * file, char * fileToChange, char date[8]) {
+
+    fat32 info;
+    uint32_t file_position;
+    uint16_t formated_date;
+    struct tm structtm;
+
+    info = readFat32(file);
+
+    if (searchFilePos(file, info.rootFirstCluster, info, fileToChange, &file_position)) {
+
+            if (!strptime(date, "%d%m%Y", &structtm)) {
+
+                formated_date = (uint16_t) ((structtm.tm_mday & 0x1F) | (((structtm.tm_mon) << 5) & 0x1E0)  | (((structtm.tm_year + 1980) << 9) & 0xFE00));
+
+                fseek(file, file_position + DATE, SEEK_SET);
+                fwrite(&formated_date, sizeof(structtm), 1, file);
+                printf("La data de creación del fichero %s ha sido modificada.\n", fileToChange);
+            } else {
+                printf("Problema");
+            }
+
+
+    } else {
+
+        printf("Error: File not found.\n");
+
+    }
+
+}

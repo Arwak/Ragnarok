@@ -51,5 +51,7 @@ fat32 readFat32(FILE *file);
 void showFat(fat32 fat);
 void searchFat32(FILE * file, char * fileToFind, int operation);
 void showFile(FILE * file, char * fileToShow);
+void changeAttributes (FILE * file, char * fileToChange, int operation);
+void changeFileDate(FILE * file, char * fileToChange, char date[8]);
 
 #endif //RAGNAROK_FAT_H
